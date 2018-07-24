@@ -1,0 +1,18 @@
+package me.joeleoli.praxi.hotbar;
+
+public enum HotbarItem {
+    QUEUE_JOIN_RANKED,
+    QUEUE_JOIN_UNRANKED,
+    QUEUE_JOIN_PARTY,
+    QUEUE_LEAVE,
+    PARTY_CREATE,
+    PARTY_DISBAND,
+    PARTY_LEAVE,
+    PARTY_INFORMATION,
+    OTHER_PARTIES,
+    LEADER_BOARDS,
+    SETTINGS,
+    KIT_EDITOR,
+    SPECTATE_STOP,
+    VIEW_INVENTORY
+}
