@@ -1,13 +1,11 @@
 package me.joeleoli.praxi.command;
 
-import me.joeleoli.commons.command.Command;
-import me.joeleoli.commons.command.CommandHelp;
-import me.joeleoli.commons.command.param.Parameter;
-import me.joeleoli.commons.util.CC;
-import me.joeleoli.commons.util.TaskUtil;
-import me.joeleoli.commons.uuid.UUIDCache;
-
-import me.joeleoli.praxi.config.Config;
+import me.joeleoli.nucleus.command.Command;
+import me.joeleoli.nucleus.command.CommandHelp;
+import me.joeleoli.nucleus.command.param.Parameter;
+import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.TaskUtil;
+import me.joeleoli.nucleus.uuid.UUIDCache;
 import me.joeleoli.praxi.player.PlayerData;
 
 import org.bukkit.command.CommandSender;
@@ -28,12 +26,6 @@ public class ManagementCommands {
         }
     }
 
-    @Command(names = "praxi reload", permissionNode = "prax.admin.reload")
-    public static void reload(Player player) {
-        Config.init();
-        player.sendMessage(CC.GREEN + "Reloaded the Praxi configuration.");
-    }
-
     @Command(names = "resetelo", permissionNode = "prax.admin.resetelo")
     public static void resetElo(CommandSender sender, @Parameter(name = "target") String targetName) {
         UUID uuid;
@@ -45,14 +37,14 @@ public class ManagementCommands {
         }
 
         if (uuid == null) {
-            sender.sendMessage(CC.RED + "Target not found.");
+            sender.sendMessage(CC.RED + "Couldn't find a player with the name " + CC.RESET + targetName + CC.RED + ". Have they joined the network?");
             return;
         }
 
         PlayerData playerData = PlayerData.getByUuid(uuid);
 
         if (playerData.isLoaded()) {
-            playerData.getPlayerStatistics().getLadders().values().forEach(stats -> {
+            playerData.getStatistics().getLadders().values().forEach(stats -> {
                 stats.setElo(1000);
             });
 
@@ -61,7 +53,7 @@ public class ManagementCommands {
             TaskUtil.runAsync(() -> {
                 playerData.load();
 
-                playerData.getPlayerStatistics().getLadders().values().forEach(stats -> {
+                playerData.getStatistics().getLadders().values().forEach(stats -> {
                     stats.setElo(1000);
                 });
 
@@ -69,7 +61,7 @@ public class ManagementCommands {
             });
         }
 
-        sender.sendMessage(CC.GREEN + "You have reset " + targetName + "'s elo.");
+        sender.sendMessage(CC.GREEN + "You reset " + targetName + "'s elo.");
     }
 
 }

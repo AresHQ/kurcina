@@ -2,7 +2,8 @@ package me.joeleoli.praxi.config;
 
 import lombok.Getter;
 
-import me.joeleoli.commons.config.ConfigCursor;
+import me.joeleoli.nucleus.config.ConfigCursor;
+import me.joeleoli.nucleus.util.CC;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -30,11 +31,11 @@ public class ConfigItem {
         }
 
         if (cursor.exists(path + ".name")) {
-            this.name = Config.translateGlobal(cursor.getString(path + ".name"));
+            this.name = CC.translate(cursor.getString(path + ".name"));
         }
 
         if (cursor.exists(path + ".lore")) {
-            this.lore = Config.translateGlobal(cursor.getStringList(path + ".lore"));
+            this.lore = CC.translateLines(cursor.getStringList(path + ".lore"));
         }
 
         if (cursor.exists(path + ".amount")) {
@@ -47,17 +48,11 @@ public class ConfigItem {
         ItemMeta itemMeta = itemStack.getItemMeta();
 
         if (this.name != null) {
-            itemMeta.setDisplayName(Config.translateGlobal(this.name));
+            itemMeta.setDisplayName(CC.translate(this.name));
         }
 
         if (this.lore != null && !this.lore.isEmpty()) {
-            List<String> lore = new ArrayList<>();
-
-            this.lore.forEach(line -> {
-                lore.add(Config.translateGlobal(line));
-            });
-
-            itemMeta.setLore(lore);
+            itemMeta.setLore(CC.translateLines(this.lore));
         }
 
         itemStack.setAmount(this.amount);

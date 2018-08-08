@@ -26,15 +26,20 @@ public class MatchSnapshot {
     private long created = System.currentTimeMillis();
 
     public MatchSnapshot(MatchPlayer matchPlayer) {
+        this(matchPlayer, null);
+    }
+
+    public MatchSnapshot(MatchPlayer matchPlayer, MatchPlayer switchTo) {
         this.matchPlayer = matchPlayer;
 
         final Player player = this.matchPlayer.toPlayer();
 
-        this.health = (int) Math.round(player.getHealth() / 2);
+        this.health = player.getHealth() == 0 ? 0 : (int) Math.round(player.getHealth() / 2);
         this.hunger = player.getFoodLevel();
         this.armor = player.getInventory().getArmorContents();
         this.contents = player.getInventory().getContents();
         this.effects = player.getActivePotionEffects();
+        this.switchTo = switchTo;
     }
 
     public int getRemainingPotions() {

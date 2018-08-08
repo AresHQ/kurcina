@@ -1,13 +1,12 @@
 package me.joeleoli.praxi.queue.gui;
 
-import me.joeleoli.commons.menu.Button;
-import me.joeleoli.commons.menu.Menu;
+import me.joeleoli.nucleus.Nucleus;
+import me.joeleoli.nucleus.menu.Button;
+import me.joeleoli.nucleus.menu.Menu;
+import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.ItemBuilder;
 
 import me.joeleoli.praxi.Praxi;
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigItem;
-import me.joeleoli.praxi.config.ConfigKey;
-import me.joeleoli.praxi.script.ScriptContext;
 import me.joeleoli.praxi.player.PlayerData;
 import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.queue.Queue;
@@ -17,27 +16,17 @@ import lombok.AllArgsConstructor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
 
 @AllArgsConstructor
 public class QueueJoinMenu extends Menu {
 
-    private boolean party;
     private boolean ranked;
 
     @Override
     public String getTitle(Player player) {
-        ScriptContext context = new ScriptContext(Config.getString(ConfigKey.MENU_JOIN_QUEUE_TITLE));
-
-        context.addCondition("ranked", this.ranked);
-        context.addCondition("unranked", !this.ranked);
-        context.addCondition("solo", !this.party);
-        context.addCondition("party", this.party);
-        context.buildComponents();
-
-        return context.buildSingleLine().length() > 32 ? context.buildSingleLine().substring(0, 32) : context.buildSingleLine();
+        return CC.GOLD + "Join " + (this.ranked ? "Ranked" : "Unranked") + " Queue";
     }
 
     @Override
@@ -47,7 +36,7 @@ public class QueueJoinMenu extends Menu {
         int i = 0;
 
         for (Queue queue : Queue.getQueues()) {
-            if (queue.isRanked() == this.ranked && queue.isParty() == this.party) {
+            if (queue.isRanked() == this.ranked) {
                 buttons.put(i++, new SelectLadderButton(queue));
             }
         }
@@ -62,44 +51,48 @@ public class QueueJoinMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_JOIN_QUEUE_SELECT_LADDER_BUTTON);
-            final ItemStack itemStack = this.queue.getLadder().getDisplayIcon();
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final Queue oppositeQueue = Queue.getByPredicate(q -> !q.isRanked() && q.isParty() == this.queue.isParty());
+            final Queue oppositeQueue = Queue.getByPredicate(q -> q.isRanked() != this.queue.isRanked() && q.getLadder() == this.queue.getLadder());
+            final List<String> lore = new ArrayList<>();
 
-            ScriptContext context = new ScriptContext(configItem.getLore());
+            lore.add("");
 
-            context.addCondition("ranked", this.queue.isRanked());
-            context.addCondition("unranked", !this.queue.isRanked());
-            context.addCondition("solo", !this.queue.isParty());
-            context.addCondition("party", this.queue.isParty());
-            context.addVariable("queue_count", this.queue.getPlayers().size() + "");
-            context.addVariable("fight_count", Praxi.getInstance().getFightingCount(this.queue) + "");
-            context.addVariable("queue_count", this.queue.getPlayers().size() + "");
-            context.addVariable("queue_count", this.queue.getPlayers().size() + "");
-            context.getReplaceables().add(this.queue.getLadder());
+            int rankedFighting = 0;
+            int rankedQueueing = 0;
+            int unrankedFighting = 0;
+            int unrankedQueueing = 0;
 
-            if (oppositeQueue != null) {
-                if (oppositeQueue.isRanked()) {
-                    context.addVariable("ranked_queue_count", oppositeQueue.getPlayers().size() + "");
-                    context.addVariable("ranked_fight_count", Praxi.getInstance().getFightingCount(oppositeQueue) + "");
-                    context.addVariable("unranked_queue_count", this.queue.getPlayers().size() + "");
-                    context.addVariable("unranked_fight_count", Praxi.getInstance().getFightingCount(this.queue) + "");
-                } else {
-                    context.addVariable("ranked_queue_count", this.queue.getPlayers().size() + "");
-                    context.addVariable("ranked_fight_count", Praxi.getInstance().getFightingCount(this.queue) + "");
-                    context.addVariable("unranked_queue_count", oppositeQueue.getPlayers().size() + "");
-                    context.addVariable("unranked_fight_count", Praxi.getInstance().getFightingCount(oppositeQueue) + "");
+            if (this.queue.isRanked()) {
+                rankedFighting = Praxi.getInstance().getFightingCount(this.queue);
+                rankedQueueing = this.queue.getPlayers().size();
+
+                if (oppositeQueue != null) {
+                    unrankedFighting = Praxi.getInstance().getFightingCount(oppositeQueue);
+                    unrankedQueueing = oppositeQueue.getPlayers().size();
+                }
+            } else {
+                unrankedFighting = Praxi.getInstance().getFightingCount(this.queue);
+                unrankedQueueing = this.queue.getPlayers().size();
+
+                if (oppositeQueue != null) {
+                    rankedFighting = Praxi.getInstance().getFightingCount(oppositeQueue);
+                    rankedQueueing = oppositeQueue.getPlayers().size();
                 }
             }
 
-            context.buildComponents();
+            lore.add(CC.DARK_PURPLE + CC.BOLD + "Ranked");
+            lore.add(" " + CC.GREEN + "In fights: " + CC.RESET + rankedFighting);
+            lore.add(" " + CC.GREEN + "In queue: " + CC.RESET + rankedQueueing);
+            lore.add("");
+            lore.add(CC.DARK_PURPLE + CC.BOLD + "Unranked");
+            lore.add(" " + CC.GREEN + "In fights: " + CC.RESET + unrankedFighting);
+            lore.add(" " + CC.GREEN + "In queue: " + CC.RESET + unrankedQueueing);
+            lore.add("");
 
-            itemMeta.setDisplayName(Config.translateLadder(configItem.getName(), this.queue.getLadder()));
-            itemMeta.setLore(context.getLines());
-            itemStack.setItemMeta(itemMeta);
+            lore.add(CC.YELLOW + "Click here to select " + CC.BOLD + this.queue.getLadder().getDisplayName() + CC.YELLOW + ".");
 
-            return itemStack;
+            return new ItemBuilder(this.queue.getLadder().getDisplayIcon())
+                    .name(this.queue.getLadder().getDisplayName()).lore(lore)
+                    .build();
         }
 
         @Override
@@ -111,13 +104,18 @@ public class QueueJoinMenu extends Menu {
             }
 
             if (playerData.getState() != PlayerState.IN_LOBBY) {
-                player.sendMessage(Config.getString(ConfigKey.QUEUE_JOIN_REJECTED_STATE));
+                player.sendMessage(CC.RED + "You must be in the lobby to join a queue.");
+                return;
+            }
+
+            if (Nucleus.isFrozen(player)) {
+                player.sendMessage(CC.RED + "You cannot queue while frozen.");
                 return;
             }
 
             player.closeInventory();
 
-            this.queue.addPlayer(player, this.queue.isParty() || !this.queue.isRanked() ? 0 : playerData.getPlayerStatistics().getElo(this.queue.getLadder()));
+            this.queue.addPlayer(player, !this.queue.isRanked() ? 0 : playerData.getStatistics().getElo(this.queue.getLadder()));
         }
 
     }

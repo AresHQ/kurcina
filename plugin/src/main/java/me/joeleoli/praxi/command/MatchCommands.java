@@ -1,8 +1,8 @@
 package me.joeleoli.praxi.command;
 
-import me.joeleoli.commons.command.Command;
-import me.joeleoli.commons.command.param.Parameter;
-import me.joeleoli.commons.util.CC;
+import me.joeleoli.nucleus.command.Command;
+import me.joeleoli.nucleus.command.param.Parameter;
+import me.joeleoli.nucleus.util.CC;
 
 import me.joeleoli.praxi.match.MatchSnapshot;
 import me.joeleoli.praxi.match.gui.MatchDetailsMenu;

@@ -1,14 +1,13 @@
 package me.joeleoli.praxi.command;
 
-import me.joeleoli.commons.command.Command;
-import me.joeleoli.commons.command.CommandHelp;
-import me.joeleoli.commons.command.param.Parameter;
-import me.joeleoli.commons.util.CC;
+import me.joeleoli.nucleus.Nucleus;
+import me.joeleoli.nucleus.command.Command;
+import me.joeleoli.nucleus.command.CommandHelp;
+import me.joeleoli.nucleus.command.param.Parameter;
+import me.joeleoli.nucleus.util.CC;
 
 import me.joeleoli.praxi.party.PartyState;
 import me.joeleoli.praxi.player.PlayerState;
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigKey;
 import me.joeleoli.praxi.party.Party;
 import me.joeleoli.praxi.player.PlayerData;
 
@@ -36,78 +35,93 @@ public class PartyCommands {
         }
     }
 
-    @Command(names = "party create")
+    @Command(names = {"p create", "party create"})
     public static void create(Player player) {
+        if (Nucleus.isFrozen(player)) {
+            player.sendMessage(CC.RED + "You cannot create a party while frozen.");
+            return;
+        }
+
         PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
 
         if (playerData.getParty() != null) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_IN_PARTY));
+            player.sendMessage(CC.RED + "You already have a party.");
             return;
         }
 
         if (playerData.getState() != PlayerState.IN_LOBBY) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_CREATE_REJECTED_STATE));
+            player.sendMessage(CC.RED + "You must be in the lobby to create a party.");
             return;
         }
 
         playerData.setParty(new Party(player));
         playerData.loadLayout();
 
-        Config.getStringList(ConfigKey.PARTY_CREATE_SUCCESS).forEach(line -> {
-            player.sendMessage(Config.translatePlayerAndTarget(line, player, null));
-        });
+        player.sendMessage(CC.YELLOW + "You created a new party.");
     }
 
-    @Command(names = "party disband")
+    @Command(names = {"p disband", "party disband"})
     public static void disband(Player player) {
         PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
 
         if (playerData.getParty() == null) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_NO_PARTY));
+            player.sendMessage(CC.RED + "You do not have a party.");
             return;
         }
 
         if (!playerData.getParty().isLeader(player)) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_NOT_LEADER));
+            player.sendMessage(CC.RED + "You are not the leader of your party.");
             return;
         }
 
         playerData.getParty().disband();
     }
 
-    @Command(names = "party invite")
+    @Command(names = {"p invite", "party invite"})
     public static void invite(Player player, @Parameter(name = "target") Player target) {
-        PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
 
         if (playerData.getParty() == null) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_NO_PARTY));
+            player.sendMessage(CC.RED + "You do not have a party.");
             return;
         }
 
         if (!playerData.getParty().canInvite(target)) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_INVITE_ALREADY_INVITED, player, target));
+            player.sendMessage(CC.RED + "That player has already been invited to your party.");
             return;
         }
 
         if (playerData.getParty().containsPlayer(target)) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_INVITE_ALREADY_MEMBER, player, target));
+            player.sendMessage(CC.RED + "That player is already in your party.");
             return;
         }
 
         if (playerData.getParty().getState() == PartyState.OPEN) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_INVITE_STATE_OPEN));
+            player.sendMessage(CC.RED + "The party state is Open. You do not need to invite players.");
+            return;
+        }
+
+        final PlayerData targetData = PlayerData.getByUuid(target.getUniqueId());
+
+        if (targetData.isInMatch() || targetData.isInQueue()) {
+            player.sendMessage(Nucleus.getColoredName(target) + CC.RED + " is currently busy.");
             return;
         }
 
         playerData.getParty().invite(target);
     }
 
-    @Command(names = "party join")
+    @Command(names = {"p join", "party join"})
     public static void join(Player player, @Parameter(name = "target") String targetId) {
+        if (Nucleus.isFrozen(player)) {
+            player.sendMessage(CC.RED + "You cannot join a party while frozen.");
+            return;
+        }
+
         PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
 
         if (playerData.getParty() != null) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_IN_PARTY));
+            player.sendMessage(CC.RED + "You already have a party.");
             return;
         }
 
@@ -120,7 +134,7 @@ public class PartyCommands {
         }
 
         if (target == null) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_JOIN_NOT_FOUND));
+            player.sendMessage(CC.RED + "A player with that name could not be found.");
             return;
         }
 
@@ -128,31 +142,31 @@ public class PartyCommands {
         Party party = targetData.getParty();
 
         if (party == null) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_JOIN_NOT_FOUND));
+            player.sendMessage(CC.RED + "A party with that name could not be found.");
             return;
         }
 
         if (party.getState() == PartyState.CLOSED) {
             if (!party.isInvited(player)) {
-                player.sendMessage(Config.getString(ConfigKey.PARTY_JOIN_NOT_INVITED));
+                player.sendMessage(CC.RED + "You have not been invited to that party.");
                 return;
             }
         }
 
-        if (party.getPlayers().size() >= Config.getInteger(ConfigKey.PARTY_MAX_SIZE)) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_JOIN_FULL));
+        if (party.getPlayers().size() >= 32) {
+            player.sendMessage(CC.RED + "That party is full and cannot hold anymore players.");
             return;
         }
 
         party.join(player);
     }
 
-    @Command(names = "party leave")
+    @Command(names = {"p leave", "party leave"})
     public static void leave(Player player) {
         PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
 
         if (playerData.getParty() == null) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_NO_PARTY));
+            player.sendMessage(CC.RED + "You do not have a party.");
             return;
         }
 
@@ -163,68 +177,68 @@ public class PartyCommands {
         }
     }
 
-    @Command(names = "party kick")
+    @Command(names = {"p kick", "party kick"})
     public static void kick(Player player, @Parameter(name = "target") Player target) {
         PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
 
         if (playerData.getParty() == null) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_NO_PARTY));
+            player.sendMessage(CC.RED + "You do not have a party.");
             return;
         }
 
         if (!playerData.getParty().isLeader(player)) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_NOT_LEADER));
+            player.sendMessage(CC.RED + "You are not the leader of your party.");
             return;
         }
 
         if (!playerData.getParty().containsPlayer(target)) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_MEMBER_NOT_FOUND));
+            player.sendMessage(CC.RED + "That player is not a member of your party.");
             return;
         }
 
         if (player.equals(target)) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_KICK_SELF));
+            player.sendMessage(CC.RED + "You cannot kick yourself from your party.");
             return;
         }
 
         playerData.getParty().leave(target, true);
     }
 
-    @Command(names = "party close")
+    @Command(names = {"p close", "party close"})
     public static void open(Player player) {
         PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
 
         if (playerData.getParty() == null) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_NO_PARTY));
+            player.sendMessage(CC.RED + "You do not have a party.");
             return;
         }
 
         if (!playerData.getParty().isLeader(player)) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_NOT_LEADER));
+            player.sendMessage(CC.RED + "You are not the leader of your party.");
             return;
         }
 
         playerData.getParty().setState(PartyState.CLOSED);
     }
 
-    @Command(names = "party open")
+    @Command(names = {"p open", "party open"})
     public static void close(Player player) {
         PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
 
         if (playerData.getParty() == null) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_NO_PARTY));
+            player.sendMessage(CC.RED + "You do not have a party.");
             return;
         }
 
         if (!playerData.getParty().isLeader(player)) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_NOT_LEADER));
+            player.sendMessage(CC.RED + "You are not the leader of your party.");
             return;
         }
 
         playerData.getParty().setState(PartyState.OPEN);
     }
 
-    @Command(names = {"party info", "party information"})
+    @Command(names = {"p info", "party info", "party information"})
     public static void information(Player player) {
         PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
 
@@ -233,7 +247,7 @@ public class PartyCommands {
         }
 
         if (playerData.getParty() == null) {
-            player.sendMessage(Config.getString(ConfigKey.PARTY_ERROR_NO_PARTY));
+            player.sendMessage(CC.RED + "You do not have a party.");
             return;
         }
 

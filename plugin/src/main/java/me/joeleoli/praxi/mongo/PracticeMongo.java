@@ -8,7 +8,7 @@ import com.mongodb.client.MongoDatabase;
 
 import me.joeleoli.praxi.Praxi;
 import lombok.Getter;
-import me.joeleoli.commons.config.ConfigCursor;
+import me.joeleoli.nucleus.config.ConfigCursor;
 
 import org.bson.Document;
 

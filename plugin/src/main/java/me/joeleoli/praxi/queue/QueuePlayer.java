@@ -28,6 +28,10 @@ public class QueuePlayer {
         }
     }
 
+    public Queue getQueue() {
+        return Queue.getByUuid(this.queueUuid);
+    }
+
     public boolean isInRange(int elo) {
         return elo >= (this.elo - this.range) && elo <= (this.elo + this.range);
     }

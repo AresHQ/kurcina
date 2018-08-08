@@ -1,15 +1,15 @@
 package me.joeleoli.praxi.queue;
 
-import me.joeleoli.commons.util.TaskUtil;
+import me.joeleoli.nucleus.Nucleus;
+import me.joeleoli.nucleus.util.TaskUtil;
 
 import me.joeleoli.praxi.arena.Arena;
-import me.joeleoli.praxi.arena.ArenaType;
 import me.joeleoli.praxi.match.MatchPlayer;
-import me.joeleoli.praxi.match.MatchType;
+import me.joeleoli.praxi.match.impl.SoloMatch;
 import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.match.Match;
 import me.joeleoli.praxi.player.PlayerData;
-import me.joeleoli.praxi.team.Team;
+import me.joeleoli.praxi.player.PracticeSetting;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -48,6 +48,18 @@ public class QueueThread extends Thread {
                                 continue;
                             }
 
+                            if (Nucleus.<Boolean>getSetting(firstPlayer, PracticeSetting.PING_FACTOR) || Nucleus.<Boolean>getSetting(secondPlayer, PracticeSetting.PING_FACTOR)) {
+                                if (firstPlayer.getPing() >= secondPlayer.getPing()) {
+                                    if (firstPlayer.getPing() - secondPlayer.getPing() >= 50) {
+                                        continue;
+                                    }
+                                } else {
+                                    if (secondPlayer.getPing() - firstPlayer.getPing() >= 50) {
+                                        continue;
+                                    }
+                                }
+                            }
+
                             if (queue.isRanked()) {
                                 if (!firstQueuePlayer.isInRange(secondQueuePlayer.getElo()) || !secondQueuePlayer.isInRange(firstQueuePlayer.getElo())) {
                                     continue;
@@ -55,44 +67,40 @@ public class QueueThread extends Thread {
                             }
 
                             // Find arena
-                            final Arena arena = Arena.getRandomByType(queue.getLadder().isBuild() ? ArenaType.STANDALONE : ArenaType.SHARED);
+                            final Arena arena = Arena.getRandom(queue.getLadder());
 
                             if (arena == null) {
                                 continue;
                             }
 
+                            // Update arena
+                            arena.setActive(true);
+
                             // Remove players from queue
                             queue.getPlayers().remove(firstQueuePlayer);
                             queue.getPlayers().remove(secondQueuePlayer);
-
-                            // Create match
-                            final Match match = new Match(MatchType.ONE_VS_ONE, queue.getLadder(), arena, queue.isRanked());
 
                             final MatchPlayer firstMatchPlayer = new MatchPlayer(firstPlayer);
                             final MatchPlayer secondMatchPlayer = new MatchPlayer(secondPlayer);
 
                             if (queue.isRanked()) {
-                                firstMatchPlayer.setElo(firstPlayerData.getPlayerStatistics().getElo(queue.getLadder()));
-                                secondMatchPlayer.setElo(secondPlayerData.getPlayerStatistics().getElo(queue.getLadder()));
+                                firstMatchPlayer.setElo(firstPlayerData.getStatistics().getElo(queue.getLadder()));
+                                secondMatchPlayer.setElo(secondPlayerData.getStatistics().getElo(queue.getLadder()));
                             }
 
-                            match.setQueueUuid(queue.getUuid());
-                            match.setTeamA(new Team<>(firstMatchPlayer));
-                            match.setTeamB(new Team<>(secondMatchPlayer));
-
-                            // Update arena
-                            arena.setActive(true);
+                            // Create match
+                            final Match match = new SoloMatch(queue.getUuid(), firstMatchPlayer, secondMatchPlayer, queue.getLadder(), arena, queue.isRanked());
 
                             // Update player's states
-                            firstPlayerData.setState(PlayerState.IN_FIGHT);
+                            firstPlayerData.setState(PlayerState.IN_MATCH);
                             firstPlayerData.setQueuePlayer(null);
                             firstPlayerData.setMatch(match);
 
-                            secondPlayerData.setState(PlayerState.IN_FIGHT);
+                            secondPlayerData.setState(PlayerState.IN_MATCH);
                             secondPlayerData.setQueuePlayer(null);
                             secondPlayerData.setMatch(match);
 
-                            TaskUtil.run(match::start);
+                            TaskUtil.run(match::handleStart);
                         }
                     }
                 }

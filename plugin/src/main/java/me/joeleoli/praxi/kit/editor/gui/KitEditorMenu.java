@@ -2,28 +2,20 @@ package me.joeleoli.praxi.kit.editor.gui;
 
 import lombok.AllArgsConstructor;
 
-import me.joeleoli.commons.menu.Button;
-import me.joeleoli.commons.menu.Menu;
-import me.joeleoli.commons.menu.buttons.DisplayButton;
-import me.joeleoli.commons.util.ItemUtil;
-import me.joeleoli.commons.util.PlayerUtil;
-import me.joeleoli.commons.util.TaskUtil;
-
-import me.joeleoli.praxi.config.ConfigItem;
+import me.joeleoli.nucleus.menu.Button;
+import me.joeleoli.nucleus.menu.Menu;
+import me.joeleoli.nucleus.menu.buttons.DisplayButton;
+import me.joeleoli.nucleus.util.*;
 import me.joeleoli.praxi.kit.NamedKit;
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigKey;
 import me.joeleoli.praxi.player.PlayerData;
-import me.joeleoli.praxi.script.ScriptContext;
-import me.joeleoli.praxi.script.wrapper.PlayerWrapper;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +33,7 @@ public class KitEditorMenu extends Menu {
     @Override
     public String getTitle(Player player) {
         PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-        return Config.translateKit(Config.getString(ConfigKey.MENU_KIT_EDITOR_TITLE), playerData.getKitEditor().getSelectedKit());
+        return CC.GOLD + "Editing " + CC.AQUA + playerData.getKitEditor().getSelectedKit().getName();
     }
 
     @Override
@@ -110,25 +102,13 @@ public class KitEditorMenu extends Menu {
                 return new ItemStack(Material.AIR);
             }
 
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_KIT_EDITOR_ARMOR_DISPLAY_BUTTON);
-            final ItemStack itemStack = this.itemStack;
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-            final ScriptContext context = new ScriptContext(configItem.getName());
-
-            context.addVariable("item_name", ItemUtil.getName(this.itemStack));
-            context.getReplaceables().add(new PlayerWrapper(player));
-            context.getReplaceables().add(playerData.getKitEditor().getSelectedLadder());
-            context.getReplaceables().add(playerData.getKitEditor().getSelectedKit());
-
-            itemMeta.setDisplayName(context.buildSingleLine());
-
-            context.setLines(configItem.getLore());
-
-            itemMeta.setLore(context.buildMultipleLines());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(this.itemStack.clone())
+                    .name(CC.AQUA + ItemUtil.getName(this.itemStack))
+                    .lore(Arrays.asList(
+                            "",
+                            CC.YELLOW + "This is automatically equipped."
+                    ))
+                    .build();
         }
 
     }
@@ -138,24 +118,11 @@ public class KitEditorMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_KIT_EDITOR_CURRENT_KIT_BUTTON);
-            final ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            final ItemMeta itemMeta = itemStack.getItemMeta();
             final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-            final ScriptContext context = new ScriptContext(configItem.getName());
 
-            context.getReplaceables().add(new PlayerWrapper(player));
-            context.getReplaceables().add(playerData.getKitEditor().getSelectedLadder());
-            context.getReplaceables().add(playerData.getKitEditor().getSelectedKit());
-
-            itemMeta.setDisplayName(context.buildSingleLine());
-
-            context.setLines(configItem.getLore());
-
-            itemMeta.setLore(context.buildMultipleLines());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.NAME_TAG)
+                    .name(CC.GREEN + CC.BOLD + "Editing: " + CC.AQUA + playerData.getKitEditor().getSelectedKit().getName())
+                    .build();
         }
 
     }
@@ -165,24 +132,15 @@ public class KitEditorMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_KIT_EDITOR_CLEAR_INVENTORY_BUTTON);
-            final ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-            final ScriptContext context = new ScriptContext(configItem.getName());
-
-            context.getReplaceables().add(new PlayerWrapper(player));
-            context.getReplaceables().add(playerData.getKitEditor().getSelectedLadder());
-            context.getReplaceables().add(playerData.getKitEditor().getSelectedKit());
-
-            itemMeta.setDisplayName(context.buildSingleLine());
-
-            context.setLines(configItem.getLore());
-
-            itemMeta.setLore(context.buildMultipleLines());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.STAINED_CLAY)
+                    .durability(7)
+                    .name(CC.YELLOW + CC.BOLD + "Clear Inventory")
+                    .lore(Arrays.asList(
+                            "",
+                            CC.YELLOW + "This will clear your inventory",
+                            CC.YELLOW + "so you can start over."
+                    ))
+                    .build();
         }
 
         @Override
@@ -204,24 +162,15 @@ public class KitEditorMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_KIT_EDITOR_LOAD_DEFAULT_BUTTON);
-            final ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-            final ScriptContext context = new ScriptContext(configItem.getName());
-
-            context.getReplaceables().add(new PlayerWrapper(player));
-            context.getReplaceables().add(playerData.getKitEditor().getSelectedLadder());
-            context.getReplaceables().add(playerData.getKitEditor().getSelectedKit());
-
-            itemMeta.setDisplayName(context.buildSingleLine());
-
-            context.setLines(configItem.getLore());
-
-            itemMeta.setLore(context.buildMultipleLines());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.STAINED_CLAY)
+                    .durability(7)
+                    .name(CC.YELLOW + CC.BOLD + "Load default kit")
+                    .lore(Arrays.asList(
+                            "",
+                            CC.YELLOW + "Click this to load the default kit",
+                            CC.YELLOW + "into the kit editing menu."
+                    ))
+                    .build();
         }
 
         @Override
@@ -246,24 +195,14 @@ public class KitEditorMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_KIT_EDITOR_SAVE_BUTTON);
-            final ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-            final ScriptContext context = new ScriptContext(configItem.getName());
-
-            context.getReplaceables().add(new PlayerWrapper(player));
-            context.getReplaceables().add(playerData.getKitEditor().getSelectedLadder());
-            context.getReplaceables().add(playerData.getKitEditor().getSelectedKit());
-
-            itemMeta.setDisplayName(context.buildSingleLine());
-
-            context.setLines(configItem.getLore());
-
-            itemMeta.setLore(context.buildMultipleLines());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.STAINED_CLAY)
+                    .durability(5)
+                    .name(CC.GREEN + CC.BOLD + "Save")
+                    .lore(Arrays.asList(
+                            "",
+                            CC.YELLOW + "Click this to save your kit."
+                    ))
+                    .build();
         }
 
         @Override
@@ -289,24 +228,15 @@ public class KitEditorMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_KIT_EDITOR_CANCEL_BUTTON);
-            final ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-            final ScriptContext context = new ScriptContext(configItem.getName());
-
-            context.getReplaceables().add(new PlayerWrapper(player));
-            context.getReplaceables().add(playerData.getKitEditor().getSelectedLadder());
-            context.getReplaceables().add(playerData.getKitEditor().getSelectedKit());
-
-            itemMeta.setDisplayName(context.buildSingleLine());
-
-            context.setLines(configItem.getLore());
-
-            itemMeta.setLore(context.buildMultipleLines());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.STAINED_CLAY)
+                    .durability(14)
+                    .name(CC.RED + CC.BOLD + "Cancel")
+                    .lore(Arrays.asList(
+                            "",
+                            CC.YELLOW + "Click this to abort editing your kit,",
+                            CC.YELLOW + "and return to the kit menu."
+                    ))
+                    .build();
         }
 
         @Override

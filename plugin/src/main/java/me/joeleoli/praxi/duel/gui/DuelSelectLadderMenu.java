@@ -2,32 +2,24 @@ package me.joeleoli.praxi.duel.gui;
 
 import lombok.AllArgsConstructor;
 
-import me.joeleoli.commons.menu.Button;
-import me.joeleoli.commons.menu.Menu;
-
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigItem;
-import me.joeleoli.praxi.config.ConfigKey;
+import me.joeleoli.nucleus.menu.Button;
+import me.joeleoli.nucleus.menu.Menu;
+import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.praxi.ladder.Ladder;
 import me.joeleoli.praxi.player.PlayerData;
 
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-public class DuelLadderMenu extends Menu {
+public class DuelSelectLadderMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-        return Config.translatePlayerAndTarget(Config.getString(ConfigKey.MENU_DUEL_LADDER_TITLE), player, playerData.getDuelProcedure().getTarget());
+        return CC.GOLD + CC.BOLD + "Select a ladder...";
     }
 
     @Override
@@ -59,20 +51,13 @@ public class DuelLadderMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_DUEL_LADDER_SELECT_BUTTON);
-            ItemStack itemStack = this.ladder.getDisplayIcon();
-            ItemMeta itemMeta = itemStack.getItemMeta();
-            List<String> lore = new ArrayList<>();
-
-            configItem.getLore().forEach(line -> {
-                lore.add(Config.translateLadder(line, this.ladder));
-            });
-
-            itemMeta.setDisplayName(Config.translateLadder(configItem.getName(), this.ladder));
-            itemMeta.setLore(lore);
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(this.ladder.getDisplayIcon())
+                    .name(this.ladder.getDisplayName())
+                    .lore(Arrays.asList(
+                            "",
+                            CC.YELLOW + "Click here to select " + CC.BOLD + this.ladder.getDisplayName() + CC.YELLOW + "."
+                    ))
+                    .build();
         }
 
         @Override
@@ -89,7 +74,7 @@ public class DuelLadderMenu extends Menu {
             player.closeInventory();
 
             // Open arena selection menu
-            new DuelArenaMenu().openMenu(player);
+            new DuelSelectArenaMenu().openMenu(player);
         }
 
     }

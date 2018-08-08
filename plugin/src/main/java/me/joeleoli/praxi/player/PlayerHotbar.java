@@ -1,21 +1,16 @@
 package me.joeleoli.praxi.player;
 
-import me.joeleoli.commons.config.ConfigCursor;
-
+import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.praxi.hotbar.HotbarItem;
 import me.joeleoli.praxi.hotbar.HotbarLayout;
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.Praxi;
 
 import lombok.Getter;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class PlayerHotbar {
@@ -28,61 +23,95 @@ public class PlayerHotbar {
     private PlayerHotbar() {}
 
     public static void init() {
-        ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getMainConfig(), "hotbar");
+        items.put(HotbarItem.QUEUE_JOIN_UNRANKED, new ItemBuilder(Material.IRON_SWORD).name(CC.GRAY + CC.BOLD + "Unranked Queue").lore(CC.YELLOW + "Right-click to join an unranked queue.").build());
+        items.put(HotbarItem.QUEUE_JOIN_RANKED, new ItemBuilder(Material.DIAMOND_SWORD).name(CC.GREEN + CC.BOLD + "Ranked Queue").lore(CC.YELLOW + "Right-click to join a ranked queue.").build());
+        items.put(HotbarItem.QUEUE_LEAVE, new ItemBuilder(Material.INK_SACK).durability(1).name(CC.RED + CC.BOLD + "Leave Queue").lore(CC.YELLOW + "Right-click to leave your queue.").build());
+        items.put(HotbarItem.PARTY_EVENTS, new ItemBuilder(Material.DIAMOND_SWORD).name(CC.GREEN + CC.BOLD + "Party Events").lore(CC.YELLOW + "Right-click to start a party event.").build());
+        items.put(HotbarItem.PARTY_CREATE, new ItemBuilder(Material.NAME_TAG).name(CC.YELLOW + CC.BOLD + "Create Party").lore(CC.YELLOW + "Right-click to create a party.").build());
+        items.put(HotbarItem.PARTY_DISBAND, new ItemBuilder(Material.INK_SACK).durability(1).name(CC.RED + CC.BOLD + "Disband Party").lore(CC.YELLOW + "Right-click to disband your party.").build());
+        items.put(HotbarItem.PARTY_LEAVE, new ItemBuilder(Material.INK_SACK).durability(1).name(CC.RED + CC.BOLD + "Leave Party").lore(CC.YELLOW + "Right-click to leave your party.").build());
+        items.put(HotbarItem.PARTY_INFORMATION, new ItemBuilder(Material.SKULL_ITEM).durability(3).name(CC.YELLOW + CC.BOLD + "Party Information").lore(CC.YELLOW + "Right-click to show your party's information.").build());
+        items.put(HotbarItem.OTHER_PARTIES, new ItemBuilder(Material.CHEST).name(CC.BLUE + CC.BOLD + "Other Parties").lore(CC.YELLOW + "Right-click to show other parties.").build());
+        items.put(HotbarItem.SETTINGS, new ItemBuilder(Material.WATCH).name(CC.PINK + CC.BOLD + "Settings").lore(CC.YELLOW + "Right-click to open your settings.").build());
+        items.put(HotbarItem.KIT_EDITOR, new ItemBuilder(Material.BOOK).name(CC.RED + CC.BOLD + "Kit Editor").lore(CC.YELLOW + "Right-click to open the kit editor.").build());
+        items.put(HotbarItem.SPECTATE_STOP, new ItemBuilder(Material.INK_SACK).durability(1).name(CC.RED + CC.BOLD + "Stop Spectating").lore(CC.YELLOW + "Right-click to stop spectating.").build());
+        items.put(HotbarItem.VIEW_INVENTORY, new ItemBuilder(Material.BOOK).name(CC.GOLD + CC.BOLD + "View Inventory").lore(CC.YELLOW + "Right-click a player to view their inventory.").build());
 
-        for (String key : cursor.getKeys("items")) {
-            cursor.setPath("hotbar.items." + key);
+        layouts.put(HotbarLayout.LOBBY_NO_PARTY, new HotbarItem[]{
+                HotbarItem.QUEUE_JOIN_UNRANKED,
+                HotbarItem.QUEUE_JOIN_RANKED,
+                null,
+                null,
+                HotbarItem.PARTY_CREATE,
+                null,
+                null,
+                HotbarItem.SETTINGS,
+                HotbarItem.KIT_EDITOR
+        });
 
-            try {
-                HotbarItem hotbarItem = HotbarItem.valueOf(key);
-                ItemStack itemStack = new ItemStack(Material.valueOf(cursor.getString("material")));
-                ItemMeta itemMeta = itemStack.getItemMeta();
+        layouts.put(HotbarLayout.LOBBY_PARTY_LEADER, new HotbarItem[]{
+                HotbarItem.PARTY_EVENTS,
+                null,
+                HotbarItem.PARTY_INFORMATION,
+                HotbarItem.OTHER_PARTIES,
+                null,
+                HotbarItem.PARTY_DISBAND,
+                null,
+                HotbarItem.SETTINGS,
+                HotbarItem.KIT_EDITOR
+        });
 
-                if (cursor.exists("lore")) {
-                    List<String> lore = new ArrayList<>();
+        layouts.put(HotbarLayout.LOBBY_PARTY_MEMBER, new HotbarItem[]{
+                HotbarItem.PARTY_INFORMATION,
+                null,
+                HotbarItem.OTHER_PARTIES,
+                null,
+                HotbarItem.PARTY_LEAVE,
+                null,
+                null,
+                HotbarItem.SETTINGS,
+                HotbarItem.KIT_EDITOR
+        });
 
-                    cursor.getStringList("lore").forEach(line -> lore.add(Config.translateGlobal(line)));
+        layouts.put(HotbarLayout.QUEUE_NO_PARTY, new HotbarItem[]{
+                HotbarItem.QUEUE_LEAVE
+        });
 
-                    itemMeta.setLore(lore);
-                }
+        layouts.put(HotbarLayout.QUEUE_PARTY_LEADER, new HotbarItem[]{
+                HotbarItem.QUEUE_LEAVE,
+                null,
+                HotbarItem.PARTY_INFORMATION,
+                null,
+                null,
+                null,
+                null,
+                HotbarItem.SETTINGS,
+                HotbarItem.KIT_EDITOR
+        });
 
-                itemMeta.setDisplayName(Config.translateGlobal(cursor.getString("name")));
-                itemStack.setDurability((short) cursor.getInt("durability"));
-                itemStack.setItemMeta(itemMeta);
+        layouts.put(HotbarLayout.QUEUE_PARTY_MEMBER, new HotbarItem[]{
+                HotbarItem.PARTY_INFORMATION,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                HotbarItem.SETTINGS,
+                HotbarItem.KIT_EDITOR
+        });
 
-                items.put(hotbarItem, itemStack);
-            } catch (Exception e) {
-                e.printStackTrace();
-                Praxi.getInstance().getLogger().severe("Failed to load hotbar item `" + key + "`.");
-            }
-        }
-
-        cursor.setPath("hotbar");
-
-        for (String key : cursor.getKeys("layouts")) {
-            try {
-                HotbarLayout hotbarLayout = HotbarLayout.valueOf(key);
-                HotbarItem[] hotbarItems = new HotbarItem[9];
-
-                int i = 0;
-
-                for (String itemName : cursor.getStringList("layouts." + key)) {
-                    if (itemName == null || itemName.equals("")) {
-                        hotbarItems[i++] = null;
-                        continue;
-                    }
-
-                    HotbarItem hotbarItem = HotbarItem.valueOf(itemName);
-
-                    hotbarItems[i++] = hotbarItem;
-                }
-
-                layouts.put(hotbarLayout, hotbarItems);
-            } catch (Exception e) {
-                e.printStackTrace();
-                Praxi.getInstance().getLogger().severe("Failed to load hotbar layout `" + key + "`.");
-            }
-        }
+        layouts.put(HotbarLayout.SPECTATE, new HotbarItem[]{
+                HotbarItem.VIEW_INVENTORY,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                HotbarItem.SPECTATE_STOP
+        });
     }
 
     public static ItemStack[] getLayout(HotbarLayout layout) {

@@ -19,4 +19,8 @@ public class DuelRequest {
         this.sender = uuid;
     }
 
+    public boolean isExpired() {
+        return System.currentTimeMillis() - this.timestamp >= 30_000;
+    }
+
 }

@@ -2,17 +2,17 @@ package me.joeleoli.praxi.kit.editor.gui.button;
 
 import lombok.AllArgsConstructor;
 
-import me.joeleoli.commons.menu.Button;
-import me.joeleoli.commons.menu.Menu;
+import me.joeleoli.nucleus.menu.Button;
+import me.joeleoli.nucleus.menu.Menu;
+import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.ItemBuilder;
 
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigItem;
-import me.joeleoli.praxi.config.ConfigKey;
-
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.Arrays;
 
 
 @AllArgsConstructor
@@ -22,15 +22,7 @@ public class BackButton extends Button {
 
     @Override
     public ItemStack getButtonItem(Player player) {
-        ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_KIT_MANAGEMENT_BACK_BUTTON);
-        ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-        ItemMeta itemMeta = itemStack.getItemMeta();
-
-        itemMeta.setDisplayName(configItem.getName());
-        itemMeta.setLore(configItem.getLore());
-        itemStack.setItemMeta(itemMeta);
-
-        return itemStack;
+        return new ItemBuilder(Material.REDSTONE).name(CC.RED + CC.BOLD + "Back").lore(Arrays.asList(CC.RED + "Click here to return to", CC.RED + "the previous menu.")).build();
     }
 
     @Override

@@ -2,13 +2,11 @@ package me.joeleoli.praxi.kit.editor.gui;
 
 import lombok.AllArgsConstructor;
 
-import me.joeleoli.commons.menu.Button;
-import me.joeleoli.commons.menu.Menu;
-
-import me.joeleoli.praxi.config.ConfigItem;
+import me.joeleoli.nucleus.menu.Button;
+import me.joeleoli.nucleus.menu.Menu;
+import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.praxi.kit.NamedKit;
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigKey;
 import me.joeleoli.praxi.kit.editor.gui.button.*;
 import me.joeleoli.praxi.ladder.Ladder;
 import me.joeleoli.praxi.player.PlayerData;
@@ -19,10 +17,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class KitManagementMenu extends Menu {
 
@@ -39,7 +34,7 @@ public class KitManagementMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        return Config.getString(ConfigKey.MENU_KIT_MANAGEMENT_TITLE, this.ladder);
+        return CC.GOLD + "Viewing " + this.ladder.getName() + " kits";
     }
 
     @Override
@@ -49,7 +44,6 @@ public class KitManagementMenu extends Menu {
         NamedKit[] kits = playerData.getKits(this.ladder);
 
         if (kits == null) {
-            System.out.println("KITS IS NULL");
             return buttons;
         }
 
@@ -87,15 +81,16 @@ public class KitManagementMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_KIT_MANAGEMENT_DELETE_KIT_BUTTON);
-            ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            ItemMeta itemMeta = itemStack.getItemMeta();
-
-            itemMeta.setDisplayName(configItem.getName());
-            itemMeta.setLore(configItem.getLore());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.STAINED_CLAY)
+                    .name(CC.RED + CC.BOLD + "Delete")
+                    .durability(14)
+                    .lore(Arrays.asList(
+                            "",
+                            CC.RED + "Click to delete this kit.",
+                            CC.RED + "You will " + CC.BOLD + "NOT" + CC.RED + " be able to",
+                            CC.RED + "recover this kit."
+                    ))
+                    .build();
         }
 
         @Override
@@ -116,15 +111,9 @@ public class KitManagementMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_KIT_MANAGEMENT_CREATE_KIT_BUTTON);
-            final ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-
-            itemMeta.setDisplayName(configItem.getName());
-            itemMeta.setLore(configItem.getLore());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.IRON_SWORD)
+                    .name(CC.GREEN + CC.BOLD + "Create Kit")
+                    .build();
         }
 
         @Override
@@ -151,15 +140,13 @@ public class KitManagementMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_KIT_MANAGEMENT_RENAME_KIT_BUTTON);
-            ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            ItemMeta itemMeta = itemStack.getItemMeta();
-
-            itemMeta.setDisplayName(configItem.getName());
-            itemMeta.setLore(configItem.getLore());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.SIGN)
+                    .name(CC.YELLOW + CC.BOLD + "Rename")
+                    .lore(Arrays.asList(
+                            "",
+                            CC.YELLOW + "Click to rename this kit."
+                    ))
+                    .build();
         }
 
         @Override
@@ -172,7 +159,7 @@ public class KitManagementMenu extends Menu {
             playerData.getKitEditor().setRename(true);
             playerData.getKitEditor().setSelectedKit(this.kit);
             player.closeInventory();
-            player.sendMessage(Config.getString(ConfigKey.KIT_EDITOR_RENAME_KIT_START, this.kit));
+            player.sendMessage(CC.YELLOW + "Renaming " + CC.BOLD + this.kit.getName() + CC.YELLOW + "... " + CC.GREEN + "Enter the new name now.");
         }
 
     }
@@ -184,15 +171,13 @@ public class KitManagementMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_KIT_MANAGEMENT_LOAD_KIT_BUTTON);
-            ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            ItemMeta itemMeta = itemStack.getItemMeta();
-
-            itemMeta.setDisplayName(configItem.getName());
-            itemMeta.setLore(configItem.getLore());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.BOOK)
+                    .name(CC.GREEN + CC.BOLD + "Load/Edit")
+                    .lore(Arrays.asList(
+                            "",
+                            CC.YELLOW + "Click to edit this kit."
+                    ))
+                    .build();
         }
 
         @Override
@@ -222,20 +207,9 @@ public class KitManagementMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_KIT_MANAGEMENT_KIT_DISPLAY_BUTTON);
-            ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            ItemMeta itemMeta = itemStack.getItemMeta();
-            List<String> lore = new ArrayList<>();
-
-            configItem.getLore().forEach(line -> {
-                lore.add(Config.translateKit(line, this.kit));
-            });
-
-            itemMeta.setDisplayName(Config.translateKit(configItem.getName(), this.kit));
-            itemMeta.setLore(lore);
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.BOOK)
+                    .name(CC.GREEN + CC.BOLD + this.kit.getName())
+                    .build();
         }
 
     }

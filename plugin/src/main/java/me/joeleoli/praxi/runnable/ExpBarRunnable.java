@@ -1,6 +1,7 @@
 package me.joeleoli.praxi.runnable;
 
 import me.joeleoli.praxi.player.PlayerData;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -15,7 +16,7 @@ public class ExpBarRunnable implements Runnable {
                 continue;
             }
 
-            if (playerData.getEnderpearlCooldown() != null) {
+            if (playerData.isOnEnderpearlCooldown()) {
                 int seconds = Math.round(playerData.getEnderpearlCooldown().getRemaining()) / 1_000;
 
                 player.setLevel(seconds);

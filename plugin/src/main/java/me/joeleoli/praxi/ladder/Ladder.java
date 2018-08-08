@@ -1,14 +1,12 @@
 package me.joeleoli.praxi.ladder;
 
-import me.joeleoli.commons.config.ConfigCursor;
-import me.joeleoli.commons.util.CC;
-import me.joeleoli.commons.util.InventoryUtil;
+import me.joeleoli.nucleus.config.ConfigCursor;
+import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.InventoryUtil;
 
-import me.joeleoli.commons.util.Pair;
 import me.joeleoli.praxi.Praxi;
 import me.joeleoli.praxi.config.ConfigItem;
 import me.joeleoli.praxi.kit.Kit;
-import me.joeleoli.praxi.script.Replaceable;
 
 import lombok.Data;
 import lombok.Getter;
@@ -19,11 +17,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Data
-public class Ladder implements Replaceable {
+public class Ladder {
 
     @Getter
     private static List<Ladder> ladders = new ArrayList<>();
@@ -33,8 +30,9 @@ public class Ladder implements Replaceable {
     private ItemStack displayIcon;
     private Kit defaultKit = new Kit();
     private List<ItemStack> kitEditorItems = new ArrayList<>();
-    private boolean enabled, build, sumo, parkour, regeneration, allowPotionFill;
-    private int hitDelay;
+    private boolean enabled, build, sumo, parkour, spleef, regeneration, allowPotionFill;
+    private int hitDelay = 20;
+    private String kbProfile;
 
     public Ladder(String name) {
         this.name = name;
@@ -44,12 +42,8 @@ public class Ladder implements Replaceable {
         ladders.add(this);
     }
 
-    @Override
-    public List<Pair<String, String>> getReplacements() {
-        return Arrays.asList(
-                new Pair<>("ladder_name", this.name),
-                new Pair<>("ladder_display_name", this.displayName)
-        );
+    public ItemStack getDisplayIcon() {
+        return this.displayIcon.clone();
     }
 
     public void save() {
@@ -60,10 +54,12 @@ public class Ladder implements Replaceable {
         cursor.set("display-icon.durability", this.displayIcon.getDurability());
         cursor.set("display-icon.amount", this.displayIcon.getAmount());
         cursor.set("enabled", this.enabled);
-        cursor.set("buildComponents", this.build);
+        cursor.set("build", this.build);
         cursor.set("sumo", this.sumo);
+        cursor.set("spleef", this.spleef);
         cursor.set("parkour", this.parkour);
         cursor.set("regeneration", this.regeneration);
+        cursor.set("hit-delay", this.hitDelay);
 
         if (this.displayIcon.hasItemMeta()) {
             final ItemMeta itemMeta = this.displayIcon.getItemMeta();
@@ -81,41 +77,6 @@ public class Ladder implements Replaceable {
         cursor.set("default-kit.contents", InventoryUtil.serializeInventory(this.defaultKit.getContents()));
 
         cursor.save();
-    }
-
-    public static void init() {
-        ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getLadderConfig(), "ladders");
-
-        for (String key : cursor.getKeys()) {
-            cursor.setPath("ladders." + key);
-
-            Ladder ladder = new Ladder(key);
-
-            ladder.setDisplayName(CC.translate(cursor.getString("display-name")));
-            ladder.setDisplayIcon(new ConfigItem(cursor, "display-icon").toItemStack());
-            ladder.setEnabled(cursor.getBoolean("enabled"));
-            ladder.setBuild(cursor.getBoolean("buildComponents"));
-            ladder.setSumo(cursor.getBoolean("sumo"));
-            ladder.setParkour(cursor.getBoolean("parkour"));
-            ladder.setRegeneration(cursor.getBoolean("regeneration"));
-
-            if (cursor.exists("default-kit")) {
-                final ItemStack[] armor = InventoryUtil.deserializeInventory(cursor.getString("default-kit.armor"));
-                final ItemStack[] contents = InventoryUtil.deserializeInventory(cursor.getString("default-kit.contents"));
-
-                ladder.setDefaultKit(new Kit(armor, contents));
-            }
-
-            if (cursor.exists("kit-editor.allow-potion-fill")) {
-                ladder.setAllowPotionFill(cursor.getBoolean("kit-editor.allow-potion-fill"));
-            }
-
-            if (cursor.exists("kit-editor.items")) {
-                for (String itemKey : cursor.getKeys("kit-editor.items")) {
-                    ladder.getKitEditorItems().add(new ConfigItem(cursor, "kit-editor.items." + itemKey).toItemStack());
-                }
-            }
-        }
     }
 
     public static Ladder getByName(String name) {

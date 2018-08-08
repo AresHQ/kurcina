@@ -3,9 +3,8 @@ package me.joeleoli.praxi.arena;
 import lombok.Getter;
 import lombok.Setter;
 
-import me.joeleoli.commons.composer.Replaceable;
-
 import me.joeleoli.praxi.cuboid.Cuboid;
+import me.joeleoli.praxi.ladder.Ladder;
 
 import org.bukkit.Location;
 
@@ -16,7 +15,7 @@ import java.util.stream.Collectors;
 
 @Getter
 @Setter
-public class Arena extends Cuboid implements Replaceable {
+public class Arena extends Cuboid {
 
     @Getter
     private static List<Arena> arenas = new ArrayList<>();
@@ -26,6 +25,7 @@ public class Arena extends Cuboid implements Replaceable {
     protected Location spawn1;
     protected Location spawn2;
     protected boolean active;
+    private List<String> ladders = new ArrayList<>();
 
     public Arena(String name, ArenaType type, Location location1, Location location2) {
         super(location1, location2);
@@ -34,19 +34,40 @@ public class Arena extends Cuboid implements Replaceable {
         this.type = type;
     }
 
+    public int getMaxBuildHeight() {
+        int highest = (int) (this.spawn1.getY() >= this.spawn2.getY() ? this.spawn1.getY() : this.spawn2.getY());
+
+        return highest + 5;
+    }
+
+    public Location getSpawn1() {
+        if (this.spawn1 == null) {
+            return null;
+        }
+
+        return this.spawn1.clone();
+    }
+
+    public Location getSpawn2() {
+        if (this.spawn2 == null) {
+            return null;
+        }
+
+        return this.spawn2.clone();
+    }
+
+    public void setActive(boolean active) {
+        if (this.type != ArenaType.SHARED) {
+            this.active = active;
+        }
+    }
+
     public void save() {}
 
     public void delete() {}
 
     public boolean isSetup() {
         return this.spawn1 != null && this.spawn2 != null;
-    }
-
-    @Override
-    public String replace(String source) {
-        return source
-                .replace("{arena_name}", this.name)
-                .replace("{arena_type}", this.type.name());
     }
 
     public static Arena getByName(String name) {
@@ -59,8 +80,8 @@ public class Arena extends Cuboid implements Replaceable {
         return null;
     }
 
-    public static Arena getRandomByType(ArenaType type) {
-        List<Arena> _arenas = arenas.stream().filter(arena -> arena.getType() == type && arena.isSetup() && !arena.isActive()).collect(Collectors.toList());
+    public static Arena getRandom(Ladder ladder) {
+        final List<Arena> _arenas = arenas.stream().filter(arena -> arena.isSetup() && arena.getLadders().contains(ladder.getName()) && ((ladder.isBuild() && !arena.isActive() && (arena.getType() == ArenaType.STANDALONE || arena.getType() == ArenaType.DUPLICATE)) || (!ladder.isBuild() && arena.getType() == ArenaType.SHARED))).collect(Collectors.toList());
 
         if (_arenas.isEmpty()) {
             return null;

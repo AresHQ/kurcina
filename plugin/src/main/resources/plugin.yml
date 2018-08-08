@@ -3,4 +3,4 @@ name: Praxi
 version: ${project.version}
 author: joeleoli
 description: ${project.description}
-depend: [ProtocolLib]
+depend: [Nucleus, ProtocolLib]

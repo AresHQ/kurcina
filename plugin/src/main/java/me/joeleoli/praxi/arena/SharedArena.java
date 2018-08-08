@@ -3,8 +3,8 @@ package me.joeleoli.praxi.arena;
 import lombok.Getter;
 import lombok.Setter;
 
-import me.joeleoli.commons.config.ConfigCursor;
-import me.joeleoli.commons.util.LocationUtil;
+import me.joeleoli.nucleus.config.ConfigCursor;
+import me.joeleoli.nucleus.util.LocationUtil;
 
 import me.joeleoli.praxi.Praxi;
 

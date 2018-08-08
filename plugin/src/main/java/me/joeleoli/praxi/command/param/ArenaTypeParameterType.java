@@ -1,7 +1,7 @@
 package me.joeleoli.praxi.command.param;
 
-import me.joeleoli.commons.command.param.ParameterType;
-import me.joeleoli.commons.util.CC;
+import me.joeleoli.nucleus.command.param.ParameterType;
+import me.joeleoli.nucleus.util.CC;
 import me.joeleoli.praxi.arena.ArenaType;
 
 import org.bukkit.command.CommandSender;

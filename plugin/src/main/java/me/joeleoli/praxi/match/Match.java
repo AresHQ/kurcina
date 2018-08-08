@@ -1,78 +1,139 @@
 package me.joeleoli.praxi.match;
 
-import me.joeleoli.commons.chat.ChatComponentBuilder;
-import me.joeleoli.commons.chat.ChatComponentExtras;
-import me.joeleoli.commons.composer.Composer;
-import me.joeleoli.commons.composer.Replaceable;
-import me.joeleoli.commons.composer.context.ConditionContext;
-import me.joeleoli.commons.composer.context.LoopContext;
-import me.joeleoli.commons.composer.context.ReplacementContext;
-import me.joeleoli.commons.composer.factory.TeamPlayerFactory;
-import me.joeleoli.commons.composer.processor.ConditionProcessor;
-import me.joeleoli.commons.composer.processor.ForEachProcessor;
-import me.joeleoli.commons.composer.processor.ReplacementProcessor;
-import me.joeleoli.commons.nametag.NameTagHandler;
-import me.joeleoli.commons.team.Team;
-import me.joeleoli.commons.team.TeamPlayer;
-import me.joeleoli.commons.util.*;
+import me.joeleoli.fairfight.FairFight;
+import me.joeleoli.nucleus.Nucleus;
+import me.joeleoli.nucleus.chat.ChatComponentBuilder;
+import me.joeleoli.nucleus.nametag.NameTagHandler;
+import me.joeleoli.nucleus.util.*;
 
+import me.joeleoli.praxi.Praxi;
 import me.joeleoli.praxi.ladder.Ladder;
 import me.joeleoli.praxi.player.PlayerState;
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigKey;
 import me.joeleoli.praxi.arena.Arena;
-import me.joeleoli.praxi.elo.EloUtil;
 import me.joeleoli.praxi.player.PlayerData;
+
+import me.joeleoli.ragespigot.RageSpigot;
 
 import lombok.Getter;
 import lombok.Setter;
 
 import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.HoverEvent;
+
+import net.minecraft.server.v1_8_R3.EntityLightning;
+import net.minecraft.server.v1_8_R3.PacketPlayOutSpawnEntityWeather;
 
 import org.bukkit.ChatColor;
-import org.bukkit.entity.Item;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.block.BlockState;
+import org.bukkit.craftbukkit.v1_8_R3.CraftWorld;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 import java.util.*;
 
 @Getter
-public class Match {
+public abstract class Match {
 
     @Getter
-    private static List<Match> matches = new ArrayList<>();
-    private static final BaseComponent[] HOVER_TEXT = new ChatComponentBuilder(CC.GRAY + "Click to view this player's" +
-            " inventory.").create();
+    protected static List<Match> matches = new ArrayList<>();
+    protected static final BaseComponent[] HOVER_TEXT = new ChatComponentBuilder(CC.GRAY + "Click to view this player's inventory.").create();
 
-    private UUID uuid = UUID.randomUUID();
+    private UUID matchId = UUID.randomUUID();
     @Setter
-    private UUID queueUuid;
-    private MatchType type;
+    private MatchState state = MatchState.STARTING;
+    private UUID queueId;
     @Setter
-    private MatchState state;
     private Ladder ladder;
     private Arena arena;
     private boolean ranked;
-    @Setter
-    private Team<MatchPlayer> teamA;
-    @Setter
-    private Team<MatchPlayer> teamB;
-    private List<MatchSnapshot> matchSnapshots = new ArrayList<>();
+    private List<MatchSnapshot> snapshots = new ArrayList<>();
     private List<UUID> spectators = new ArrayList<>();
-    private List<Item> drops = new ArrayList<>();
+    private List<Entity> entities = new ArrayList<>();
+    private List<Location> placedBlocks = new ArrayList<>();
+    private List<BlockState> changedBlocks = new ArrayList<>();
     @Setter
     private long startTimestamp;
 
-    public Match(MatchType type, Ladder ladder, Arena arena, boolean ranked) {
-        this.type = type;
-        this.state = MatchState.STARTING;
+    public Match(Ladder ladder, Arena arena, boolean ranked) {
+        this(null, ladder, arena, ranked);
+    }
+
+    public Match(UUID queueId, Ladder ladder, Arena arena, boolean ranked) {
+        this.queueId = queueId;
         this.ladder = ladder;
         this.arena = arena;
         this.ranked = ranked;
 
         matches.add(this);
+    }
+
+    public abstract boolean isSoloMatch();
+
+    public abstract boolean isTeamMatch();
+
+    public abstract void onStart();
+
+    public abstract void onEnd();
+
+    public abstract void onDeath(Player player, Player killer);
+
+    public abstract void onRespawn(Player player);
+
+    public abstract boolean canEnd();
+
+    public abstract Player getWinningPlayer();
+
+    public abstract MatchTeam getWinningTeam();
+
+    public abstract MatchPlayer getMatchPlayerA();
+
+    public abstract MatchPlayer getMatchPlayerB();
+
+    public abstract List<MatchPlayer> getMatchPlayers();
+
+    public abstract Player getPlayerA();
+
+    public abstract Player getPlayerB();
+
+    public abstract List<Player> getPlayers();
+
+    public abstract MatchTeam getTeamA();
+
+    public abstract MatchTeam getTeamB();
+
+    public abstract MatchTeam getTeam(MatchPlayer matchPlayer);
+
+    public abstract MatchTeam getTeam(Player player);
+
+    public abstract MatchPlayer getMatchPlayer(Player player);
+
+    public abstract int getOpponentsLeft(Player player);
+
+    public abstract MatchTeam getOpponentTeam(MatchTeam matchTeam);
+
+    public abstract MatchTeam getOpponentTeam(Player player);
+
+    public abstract MatchPlayer getOpponentMatchPlayer(Player player);
+
+    public abstract Player getOpponentPlayer(Player player);
+
+    public abstract int getTotalRoundWins();
+
+    public abstract int getRoundWins(MatchPlayer matchPlayer);
+
+    public abstract int getRoundWins(MatchTeam matchTeam);
+
+    public abstract int getRoundsNeeded(MatchPlayer matchPlayer);
+
+    public abstract int getRoundsNeeded(MatchTeam matchTeam);
+
+    public boolean isMatchMakingMatch() {
+        return this.queueId != null;
     }
 
     public boolean isStarting() {
@@ -87,372 +148,378 @@ public class Match {
         return this.state == MatchState.ENDING;
     }
 
-    public void start() {
-        this.teamA.getPlayers().forEach(player -> {
-            // Setup friendly nametags
-            this.teamA.getPlayers().forEach(teamMate -> {
-                NameTagHandler.addToTeam(player, teamMate, ChatColor.GREEN);
-            });
+    public void setupPlayers() {
+        if (this.isSoloMatch()) {
+            final MatchPlayer matchPlayerA = this.getMatchPlayerA();
+            final MatchPlayer matchPlayerB = this.getMatchPlayerB();
 
-            // Setup enemy nametags
-            this.teamB.getPlayers().forEach(enemy -> {
-                NameTagHandler.addToTeam(player, enemy, ChatColor.RED);
-            });
+            matchPlayerA.setAlive(true);
+            matchPlayerB.setAlive(true);
 
-            // Teleport to starting position
-            player.teleport(this.arena.getSpawn1());
-        });
+            final Player playerA = matchPlayerA.toPlayer();
+            final Player playerB = matchPlayerB.toPlayer();
 
-        this.teamB.getPlayers().forEach(player -> {
-            this.teamB.getPlayers().forEach(teamMate -> {
-                NameTagHandler.addToTeam(player, teamMate, ChatColor.GREEN);
-            });
+            playerA.showPlayer(playerB);
+            playerB.showPlayer(playerA);
 
-            this.teamA.getPlayers().forEach(enemy -> {
-                NameTagHandler.addToTeam(player, enemy, ChatColor.RED);
-            });
-
-            player.teleport(this.arena.getSpawn2());
-        });
-
-        final List<Player> players = this.getPlayers();
-
-        players.forEach(player -> {
-            final Team<MatchPlayer> team = this.getTeam(player);
-            final Team<MatchPlayer> opponent = this.getOpponent(team);
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-            final PlayerData opponentData = PlayerData.getByUuid(opponent.getLeader().getUuid());
-
-            final Composer composer = new Composer();
-
-            composer.getContexts().add(
-                    new ConditionContext()
-                            .addCondition("ranked", this.isRanked())
-                            .addCondition("unranked", !this.isRanked())
-                            .addCondition("solo", this.isSolo())
-                            .addCondition("party", !this.isSolo())
-            );
-            composer.getContexts().add(
-                    new ReplacementContext()
-                            .addReplacement("match_type", this.type.getName())
-                            .addReplacement("team_leader_name", team.getLeader().getName())
-                            .addReplacement("team_leader_display_name", team.getLeader().getDisplayName())
-                            .addReplacement("opponent_team_leader_name", team.getLeader().getName())
-                            .addReplacement("opponent_team_leader_display_name", team.getLeader().getDisplayName())
-            );
-            composer.getContexts().add(
-                    new LoopContext<MatchPlayer>()
-                            .addList("team", new TeamPlayerFactory<MatchPlayer>().createList(team.getTeamPlayers()))
-                            .addList("opponent_team", new TeamPlayerFactory<MatchPlayer>().createList(opponent.getTeamPlayers()))
-            );
-
-            context.getReplaceables().clear();
-            context.getReplaceables().add(this.ladder);
-            context.getReplaceables().add(new PlayerInfoWrapper(team.getLeader(), "team"));
-            context.getReplaceables().add(new PlayerInfoWrapper(opponent.getLeader(), "opponent"));
-
-            if (this.ranked) {
-                final int playerElo = this.isSolo() && this.ranked ? playerData.getPlayerStatistics().getElo(this
-                        .ladder) : 0;
-                final int opponentElo = this.isSolo() && this.ranked ? opponentData.getPlayerStatistics().getElo(this
-                        .ladder) : 0;
-
-                context.addVariable("player_elo", playerElo + "");
-                context.addVariable("opponent_elo", opponentElo + "");
+            if (this.arena.getSpawn1().getBlock().getType() == Material.AIR) {
+                playerA.teleport(this.arena.getSpawn1());
+            } else {
+                playerA.teleport(this.arena.getSpawn1().add(0, 2, 0));
             }
 
-            players.forEach(player::showPlayer);
-
-            PlayerUtil.reset(player);
-
-            // Add custom kit items
-            for (ItemStack itemStack : playerData.getKitItems(this.ladder)) {
-                player.getInventory().addItem(itemStack);
+            if (this.arena.getSpawn2().getBlock().getType() == Material.AIR) {
+                playerB.teleport(this.arena.getSpawn2());
+            } else {
+                playerB.teleport(this.arena.getSpawn2().add(0, 2, 0));
             }
 
-            player.updateInventory();
+            NameTagHandler.addToTeam(playerA, playerB, ChatColor.RED, this.ladder.isBuild());
+            NameTagHandler.addToTeam(playerB, playerA, ChatColor.RED, this.ladder.isBuild());
 
-            context.buildMultipleLines().forEach(player::sendMessage);
-        });
+            PlayerUtil.reset(playerA);
+            PlayerUtil.reset(playerB);
+
+            playerA.setMaximumNoDamageTicks(this.ladder.getHitDelay());
+            playerB.setMaximumNoDamageTicks(this.ladder.getHitDelay());
+
+            if (this.ladder.isSumo()) {
+                FairFight.getInstance().getPlayerDataManager().getPlayerData(playerA).setAllowTeleport(true);
+                FairFight.getInstance().getPlayerDataManager().getPlayerData(playerB).setAllowTeleport(true);
+            } else {
+                for (ItemStack itemStack : PlayerData.getByUuid(playerA.getUniqueId()).getKitItems(this.ladder)) {
+                    playerA.getInventory().addItem(itemStack);
+                }
+
+                for (ItemStack itemStack : PlayerData.getByUuid(playerB.getUniqueId()).getKitItems(this.ladder)) {
+                    playerB.getInventory().addItem(itemStack);
+                }
+            }
+
+            if (this.ladder.getKbProfile() != null) {
+                playerA.setKnockbackProfile(RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile()));
+                playerB.setKnockbackProfile(RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile()));
+            }
+        } else if (this.isTeamMatch()) {
+            final MatchTeam teamA = this.getTeamA();
+            final MatchTeam teamB = this.getTeamB();
+
+            for (MatchPlayer matchPlayer : teamA.getTeamPlayers()) {
+                if (!matchPlayer.isDisconnected()) {
+                    matchPlayer.setAlive(true);
+                }
+
+                final Player player = matchPlayer.toPlayer();
+
+                if (player == null || !player.isOnline()) {
+                    continue;
+                }
+
+                player.teleport(this.arena.getSpawn1());
+
+                for (Player member : teamA.getPlayers()) {
+                    NameTagHandler.addToTeam(player, member, ChatColor.GREEN, this.ladder.isBuild());
+                }
+
+                for (Player enemy : teamB.getPlayers()) {
+                    NameTagHandler.addToTeam(player, enemy, ChatColor.RED, this.ladder.isBuild());
+                }
+            }
+
+            for (MatchPlayer matchPlayer : teamB.getTeamPlayers()) {
+                if (!matchPlayer.isDisconnected()) {
+                    matchPlayer.setAlive(true);
+                }
+
+                final Player player = matchPlayer.toPlayer();
+
+                if (player == null || !player.isOnline()) {
+                    continue;
+                }
+
+                player.teleport(this.arena.getSpawn2());
+
+                for (Player member : teamB.getPlayers()) {
+                    NameTagHandler.addToTeam(player, member, ChatColor.GREEN, this.ladder.isBuild());
+                }
+
+                for (Player enemy : teamA.getPlayers()) {
+                    NameTagHandler.addToTeam(player, enemy, ChatColor.RED, this.ladder.isBuild());
+                }
+            }
+
+            final List<Player> players = this.getPlayers();
+
+            for (Player first : players) {
+                PlayerUtil.reset(first);
+
+                first.setMaximumNoDamageTicks(this.ladder.getHitDelay());
+
+                if (this.ladder.isSumo()) {
+                    FairFight.getInstance().getPlayerDataManager().getPlayerData(first).setAllowTeleport(true);
+                } else {
+                    for (ItemStack itemStack : PlayerData.getByUuid(first.getUniqueId()).getKitItems(this.ladder)) {
+                        first.getInventory().addItem(itemStack);
+                    }
+                }
+
+                if (this.ladder.getKbProfile() != null) {
+                    first.setKnockbackProfile(RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile()));
+                }
+
+                for (Player second : players) {
+                    if (first.getUniqueId().equals(second.getUniqueId())) {
+                        continue;
+                    }
+
+                    first.showPlayer(second);
+                    second.showPlayer(first);
+                }
+            }
+        }
+    }
+
+    public void handleStart() {
+        this.setupPlayers();
+
+        this.state = MatchState.STARTING;
+        this.startTimestamp = -1;
+        this.arena.setActive(true);
+
+        this.onStart();
 
         TaskUtil.runTimer(new MatchStartRunnable(this), 20L, 20L);
     }
 
-    public void end() {
-        matches.remove(this);
-
+    private void handleEnd() {
         this.state = MatchState.ENDING;
-        this.arena.setActive(false);
 
-        final Team<MatchPlayer> winnerTeam = this.getWinner();
-        final Team<MatchPlayer> loserTeam = this.getOpponent(winnerTeam);
-        final MatchPlayer winnerPlayer = winnerTeam.getLeader();
-        final MatchPlayer loserPlayer = loserTeam.getLeader();
-        final ScriptContext context = new ScriptContext(Config.getStringList(ConfigKey.MATCH_END));
+        this.onEnd();
 
-        context.addCondition("ranked", this.isRanked());
-        context.addCondition("unranked", this.isRanked());
-        context.addCondition("solo", this.isSolo());
-        context.addCondition("party", !this.isSolo());
-        context.getReplaceables().add(new PlayerInfoWrapper(winnerPlayer, "winner"));
-        context.getReplaceables().add(new PlayerInfoWrapper(loserPlayer, "loser"));
+        if (this.isSoloMatch()) {
+            final Player playerA = this.getPlayerA();
+            final Player playerB = this.getPlayerB();
 
-        // Add context to script context based on match type
-        if (this.type == MatchType.ONE_VS_ONE) {
-            final HoverEvent winnerHoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, HOVER_TEXT);
-            final ClickEvent winnerClickEvent = new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/viewinv " +
-                    winnerPlayer.getUuid().toString());
+            playerA.hidePlayer(playerB);
+            playerB.hidePlayer(playerA);
 
-            final HoverEvent loserHoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, HOVER_TEXT);
-            final ClickEvent loserClickEvent = new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/viewinv " +
-                    loserPlayer.getUuid().toString());
-
-            context.addComponentExtras("winner_clickable", new ChatComponentExtras(winnerHoverEvent, winnerClickEvent));
-            context.addComponentExtras("loser_clickable", new ChatComponentExtras(loserHoverEvent, loserClickEvent));
-
-            if (this.ranked) {
-                int newWinnerElo = EloUtil.getNewRating(winnerPlayer.getElo(), loserPlayer.getElo(), true);
-                int newLoserElo = EloUtil.getNewRating(loserPlayer.getElo(), winnerPlayer.getElo(), false);
-
-                int winnerEloChange = newWinnerElo - winnerPlayer.getElo();
-                int loserEloChange = loserPlayer.getElo() - newLoserElo;
-
-                context.addVariable("winner_new_elo", newWinnerElo + "");
-                context.addVariable("loser_new_elo", newLoserElo + "");
-                context.addVariable("winner_elo_change", winnerEloChange + "");
-                context.addVariable("loser_elo_change", loserEloChange + "");
-
-                PlayerData winnerPlayerData = PlayerData.getByUuid(winnerPlayer.getUuid());
-                PlayerData loserPlayerData = PlayerData.getByUuid(loserPlayer.getUuid());
-
-                if (winnerPlayerData.isLoaded()) {
-                    winnerPlayerData.getPlayerStatistics().getLadderStatistics(this.ladder).setElo(newWinnerElo);
-                }
-
-                if (loserPlayerData.isLoaded()) {
-                    loserPlayerData.getPlayerStatistics().getLadderStatistics(this.ladder).setElo(newLoserElo);
-                }
-            }
-        } else {
-
-        }
-
-        // Build the components after the script context is finished
-        List<BaseComponent[]> components = context.buildComponents();
-
-        // Store list of players so we don't have to fetch from bukkit every time
-        List<Player> players = this.getPlayers();
-
-        for (MatchPlayer matchPlayer : this.getMatchPlayers()) {
-            if (matchPlayer.isDisconnected()) {
-                continue;
-            }
-
-            Player player = matchPlayer.toPlayer();
-
-            if (player != null) {
+            for (MatchPlayer matchPlayer : new MatchPlayer[]{this.getMatchPlayerA(), this.getMatchPlayerB()}) {
                 if (matchPlayer.isAlive()) {
-                    MatchSnapshot matchInventory = new MatchSnapshot(matchPlayer);
+                    final Player player = matchPlayer.toPlayer();
 
-                    if (this.isSolo()) {
-                        MatchPlayer opponent = this.getOpponent(player).getLeader();
+                    if (player != null) {
+                        player.setFireTicks(0);
+                        player.updateInventory();
 
-                        matchInventory.setSwitchTo(opponent);
+                        if (matchPlayer.isAlive()) {
+                            MatchSnapshot snapshot = new MatchSnapshot(matchPlayer);
+
+                            snapshot.setSwitchTo(this.getOpponentMatchPlayer(player));
+
+                            this.snapshots.add(snapshot);
+                        }
+                    }
+                }
+            }
+        } else if (this.isTeamMatch()) {
+            for (MatchPlayer firstMatchPlayer : this.getMatchPlayers()) {
+                if (firstMatchPlayer.isDisconnected()) {
+                    continue;
+                }
+
+                final Player player = firstMatchPlayer.toPlayer();
+
+                if (player != null) {
+                    for (MatchPlayer secondMatchPlayer : this.getMatchPlayers()) {
+                        if (secondMatchPlayer.isDisconnected()) {
+                            continue;
+                        }
+
+                        if (secondMatchPlayer.getUuid().equals(player.getUniqueId())) {
+                            continue;
+                        }
+
+                        final Player secondPlayer = secondMatchPlayer.toPlayer();
+
+                        if (secondPlayer == null) {
+                            continue;
+                        }
+
+                        player.hidePlayer(secondPlayer);
                     }
 
-                    this.matchSnapshots.add(matchInventory);
+                    player.setFireTicks(0);
+                    player.updateInventory();
+
+                    if (firstMatchPlayer.isAlive()) {
+                        this.snapshots.add(new MatchSnapshot(firstMatchPlayer));
+                    }
                 }
-
-                PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-
-                PlayerUtil.spawn(player);
-                playerData.setState(PlayerState.IN_LOBBY);
-                playerData.setMatch(null);
-                playerData.setEnderpearlCooldown(null);
-                playerData.getSplashPositions().clear();
-                playerData.getSoundPositions().clear();
-                playerData.loadLayout();
-
-                players.forEach(otherPlayer -> {
-                    player.hidePlayer(otherPlayer);
-                    NameTagHandler.removeFromTeams(player, otherPlayer);
-                });
-
-                components.forEach(player::sendMessage);
             }
         }
 
         this.getSpectators().forEach(this::removeSpectator);
-        this.drops.forEach(Item::remove);
-        this.matchSnapshots.forEach(matchInventory -> {
+        this.entities.forEach(Entity::remove);
+        this.snapshots.forEach(matchInventory -> {
             matchInventory.setCreated(System.currentTimeMillis());
             MatchSnapshot.getCache().put(matchInventory.getMatchPlayer().getUuid(), matchInventory);
         });
-    }
 
-    public void cancel() {
+        new MatchResetRunnable(this).runTask(Praxi.getInstance());
 
-    }
+        TaskUtil.runLater(() -> {
+            if (this.isSoloMatch()) {
+                final Player playerA = this.getPlayerA();
+                final Player playerB = this.getPlayerB();
 
-    public boolean isSolo() {
-        return this.type == MatchType.ONE_VS_ONE;
-    }
+                NameTagHandler.removeFromTeams(playerA, playerB);
+                NameTagHandler.removeFromTeams(playerB, playerA);
+                NameTagHandler.removeHealthDisplay(playerA);
+                NameTagHandler.removeHealthDisplay(playerB);
 
-    public List<Player> getPlayers() {
-        List<Player> players = new ArrayList<>();
+                for (MatchPlayer matchPlayer : new MatchPlayer[]{this.getMatchPlayerA(), this.getMatchPlayerB()}) {
+                    final Player player = matchPlayer.toPlayer();
 
-        this.teamA.getTeamPlayers().forEach(matchPlayer -> {
-            Player player = matchPlayer.toPlayer();
+                    if (player != null) {
+                        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
 
-            if (player != null) {
-                players.add(player);
+                        PlayerUtil.spawn(player);
+
+                        playerData.setState(PlayerState.IN_LOBBY);
+                        playerData.setMatch(null);
+                        playerData.setEnderpearlCooldown(null);
+                        playerData.loadLayout();
+                        player.setKnockbackProfile(null);
+                    }
+                }
+            } else if (this.isTeamMatch()) {
+                this.getPlayers().forEach(player -> {
+                    NameTagHandler.removeHealthDisplay(player);
+                    this.getPlayers().forEach(otherPlayer -> NameTagHandler.removeFromTeams(player, otherPlayer));
+                });
+
+                for (MatchPlayer matchPlayer : this.getMatchPlayers()) {
+                    if (matchPlayer.isDisconnected()) {
+                        continue;
+                    }
+
+                    final Player player = matchPlayer.toPlayer();
+
+                    if (player != null) {
+                        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+
+                        PlayerUtil.spawn(player);
+
+                        playerData.setState(PlayerState.IN_LOBBY);
+                        playerData.setMatch(null);
+                        playerData.setEnderpearlCooldown(null);
+                        playerData.loadLayout();
+                        player.setKnockbackProfile(null);
+                    }
+                }
             }
-        });
+        }, 20L * 3);
 
-        this.teamB.getTeamPlayers().forEach(matchPlayer -> {
-            Player player = matchPlayer.toPlayer();
-
-            if (player != null) {
-                players.add(player);
-            }
-        });
-
-        return players;
+        matches.remove(this);
     }
 
-    public List<MatchPlayer> getMatchPlayers() {
-        List<MatchPlayer> matchPlayers = new ArrayList<>();
-        matchPlayers.addAll(this.teamA.getTeamPlayers());
-        matchPlayers.addAll(this.teamB.getTeamPlayers());
-        return matchPlayers;
+    public void handleRespawn(Player player) {
+        player.spigot().respawn();
+        player.setVelocity(new Vector());
+
+        this.onRespawn(player);
     }
 
-    public MatchPlayer getMatchPlayer(Player player) {
-        for (MatchPlayer matchPlayer : this.teamA.getTeamPlayers()) {
-            if (matchPlayer.getUuid().equals(player.getUniqueId())) {
-                return matchPlayer;
-            }
+    public void handleDeath(Player deadPlayer, Player killerPlayer, boolean disconnected) {
+        final MatchPlayer matchPlayer = this.getMatchPlayer(deadPlayer);
+
+        if (!matchPlayer.isAlive()) {
+            return;
         }
-
-        for (MatchPlayer matchPlayer : this.teamB.getTeamPlayers()) {
-            if (matchPlayer.getUuid().equals(player.getUniqueId())) {
-                return matchPlayer;
-            }
-        }
-
-        return null;
-    }
-
-    public Team<MatchPlayer> getTeam(Player player) {
-        for (MatchPlayer matchPlayer : this.teamA.getTeamPlayers()) {
-            if (matchPlayer.getUuid().equals(player.getUniqueId())) {
-                return this.teamA;
-            }
-        }
-
-        return this.teamB;
-    }
-
-    public Team<MatchPlayer> getOpponent(Team team) {
-        return this.teamA.equals(team) ? this.teamB : this.teamA;
-    }
-
-    public Team<MatchPlayer> getOpponent(Player player) {
-        Team team = this.getTeam(player);
-
-        return this.teamA.equals(team) ? this.teamB : this.teamA;
-    }
-
-    public Team<MatchPlayer> getWinner() {
-        if (this.teamA.getAliveTeamPlayers().isEmpty()) {
-            return this.teamB;
-        } else if (this.teamB.getAliveTeamPlayers().isEmpty()) {
-            return this.teamA;
-        } else {
-            return null;
-        }
-    }
-
-    public List<Player> getSpectators() {
-        return PlayerUtil.toBukkitPlayers(this.spectators);
-    }
-
-    public void addSpectator(Player player, Player target) {
-        this.getPlayers().forEach(other -> {
-            player.showPlayer(other);
-            other.hidePlayer(player);
-        });
-
-        this.spectators.add(player.getUniqueId());
-
-        PlayerUtil.reset(player);
-
-        PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-
-        playerData.setMatch(this);
-        playerData.setState(PlayerState.SPECTATE_MATCH);
-        playerData.loadLayout();
-        player.setAllowFlight(true);
-        player.setFlying(true);
-        player.updateInventory();
-        player.teleport(target.getLocation().add(0, 2, 0));
-
-        Config.getStringList(ConfigKey.SPECTATE_JOIN_SUCCESS).forEach(line -> {
-            player.sendMessage(Config.translatePlayerAndTarget(line, player, target));
-        });
-
-        if (!player.hasPermission("praxi.spectate.hidden")) {
-            List<String> toBroadcast = new ArrayList<>();
-
-            Config.getStringList(ConfigKey.SPECTATE_JOIN_BROADCAST).forEach(line -> {
-                toBroadcast.add(Config.translatePlayerAndTarget(line, player, null));
-            });
-
-            this.broadcast(toBroadcast);
-        }
-    }
-
-    public void removeSpectator(Player player) {
-        this.getPlayers().forEach(other -> {
-            player.hidePlayer(other);
-            other.hidePlayer(player);
-        });
-
-        this.spectators.remove(player.getUniqueId());
-
-        PlayerUtil.spawn(player);
-
-        PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-
-        if (this.state != MatchState.ENDING && !player.hasPermission("praxi.spectate.hidden")) {
-            playerData.getMatch().broadcast(Config.getString(ConfigKey.SPECTATE_QUIT_BROADCAST, player, null));
-        }
-
-        playerData.setState(PlayerState.IN_LOBBY);
-        playerData.setMatch(null);
-        playerData.getSplashPositions().clear();
-        playerData.getSoundPositions().clear();
-        playerData.loadLayout();
-    }
-
-    public void handleDeath(Player player, Player killer, boolean disconnected) {
-        MatchPlayer matchPlayer = this.getMatchPlayer(player);
 
         matchPlayer.setAlive(false);
         matchPlayer.setDisconnected(disconnected);
 
-        MatchSnapshot matchInventory = new MatchSnapshot(matchPlayer);
+        final List<Player> involvedPlayers = new ArrayList<>();
 
-        if (this.isSolo()) {
-            MatchPlayer opponent = this.getOpponent(player).getLeader();
-
-            matchInventory.setSwitchTo(opponent);
+        if (this.isSoloMatch()) {
+            involvedPlayers.add(this.getPlayerA());
+            involvedPlayers.add(this.getPlayerB());
+        } else {
+            involvedPlayers.addAll(this.getPlayers());
         }
 
-        this.matchSnapshots.add(matchInventory);
+        involvedPlayers.addAll(this.getSpectators());
 
-        if (this.isFinished()) {
-            TaskUtil.runLater(this::end, 2L);
+        EntityLightning is = new EntityLightning(((CraftWorld) deadPlayer.getWorld()).getHandle(), deadPlayer.getLocation().getX(), deadPlayer.getLocation().getY(), deadPlayer.getLocation().getZ());
+        PacketPlayOutSpawnEntityWeather lightningPacket = new PacketPlayOutSpawnEntityWeather(is);
+
+        involvedPlayers.forEach(other -> {
+            if (other != null) {
+                other.playSound(deadPlayer.getLocation(), Sound.AMBIENCE_THUNDER, 1.0F, 1.0F);
+                ((CraftPlayer) other).getHandle().playerConnection.sendPacket(lightningPacket);
+            }
+        });
+
+        for (Player involved : involvedPlayers) {
+            String deadName = CC.RED + deadPlayer.getName();
+
+            if (this.isSoloMatch()) {
+                if (deadPlayer.getUniqueId().equals(involved.getUniqueId())) {
+                    deadName = CC.GREEN + deadPlayer.getName();
+                }
+            } else {
+                final MatchTeam matchTeam = this.getTeam(involved);
+
+                if (matchTeam != null && matchTeam.containsPlayer(deadPlayer)) {
+                    deadName = CC.GREEN + deadPlayer.getName();
+                }
+            }
+
+            if (matchPlayer.isDisconnected()) {
+                involved.sendMessage(deadName + CC.GRAY + " has disconnected.");
+                continue;
+            }
+
+            String killerName = null;
+
+            if (killerPlayer != null) {
+                killerName = CC.RED + killerPlayer.getName();
+
+                if (this.isSoloMatch()) {
+                    if (killerPlayer.getUniqueId().equals(involved.getUniqueId())) {
+                        killerName = CC.GREEN + killerPlayer.getName();
+                    }
+                } else {
+                    final MatchTeam matchTeam = this.getTeam(involved);
+
+                    if (matchTeam != null && matchTeam.containsPlayer(killerPlayer)) {
+                        killerName = CC.GREEN + killerPlayer.getName();
+                    }
+                }
+            }
+
+            if (killerName == null) {
+                involved.sendMessage(deadName + CC.GRAY + " has died.");
+            } else {
+                involved.sendMessage(deadName + CC.GRAY + " was killed by " + killerName + CC.GRAY + ".");
+            }
+        }
+
+        this.onDeath(deadPlayer, killerPlayer);
+
+        if (this.canEnd()) {
+            this.handleEnd();
+        }
+    }
+
+    public String getDuration() {
+        if (this.isStarting()) {
+            return "00:00";
+        } else if (this.isEnding()) {
+            return "Ending";
+        } else {
+            return TimeUtil.formatTime(this.getElapsedDuration());
         }
     }
 
@@ -460,27 +527,156 @@ public class Match {
         return System.currentTimeMillis() - this.startTimestamp;
     }
 
-    public boolean isFinished() {
-        return this.teamA.getAliveTeamPlayers().isEmpty() || this.teamB.getAliveTeamPlayers().isEmpty();
-    }
+    protected void broadcast(String message) {
+        if (this.isSoloMatch()) {
+            this.getPlayerA().sendMessage(message);
+            this.getPlayerB().sendMessage(message);
+        } else {
+            this.getPlayers().forEach(player -> player.sendMessage(message));
+        }
 
-    public void broadcast(String message) {
-        this.getPlayers().forEach(player -> player.sendMessage(message));
         this.getSpectators().forEach(player -> player.sendMessage(message));
     }
 
-    public void broadcast(List<String> messages) {
-        this.getPlayers().forEach(player -> messages.forEach(player::sendMessage));
-        this.getSpectators().forEach(player -> messages.forEach(player::sendMessage));
+    void broadcast(Sound sound) {
+        if (this.isSoloMatch()) {
+            this.getPlayerA().playSound(this.getPlayerA().getLocation(), sound, 1.0F, 1.0F);
+            this.getPlayerB().playSound(this.getPlayerB().getLocation(), sound, 1.0F, 1.0F);
+        } else {
+            this.getPlayers().forEach(player -> player.playSound(player.getLocation(), sound, 1.0F, 1.0F));
+        }
+
+        this.getSpectators().forEach(player -> player.playSound(player.getLocation(), sound, 1.0F, 1.0F));
     }
 
     public List<UUID> getInvolvedPlayers() {
         List<UUID> toReturn = new ArrayList<>();
 
         toReturn.addAll(this.spectators);
-        this.getMatchPlayers().forEach(matchPlayer -> toReturn.add(matchPlayer.getUuid()));
+
+        if (this.isSoloMatch()) {
+            toReturn.add(this.getMatchPlayerA().getUuid());
+            toReturn.add(this.getMatchPlayerB().getUuid());
+        } else if (this.isTeamMatch()) {
+            this.getMatchPlayers().forEach(matchPlayer -> toReturn.add(matchPlayer.getUuid()));
+        }
 
         return toReturn;
+    }
+
+    protected List<Player> getSpectators() {
+        return PlayerUtil.toBukkitPlayers(this.spectators);
+    }
+
+    public void addSpectator(Player player, Player target) {
+        this.spectators.add(player.getUniqueId());
+
+        if (this.isSoloMatch()) {
+            final Player playerA = this.getPlayerA();
+            final Player playerB = this.getPlayerB();
+
+            if (playerA != null) {
+                player.showPlayer(playerA);
+
+                NameTagHandler.addToTeam(player, playerA, ChatColor.AQUA, this.ladder.isBuild());
+            }
+
+            if (playerB != null) {
+                player.showPlayer(playerB);
+
+                NameTagHandler.addToTeam(player, playerB, ChatColor.LIGHT_PURPLE, this.ladder.isBuild());
+            }
+        } else if (this.isTeamMatch()) {
+            this.getTeamA().getPlayers().forEach(teamPlayer -> {
+                player.showPlayer(teamPlayer);
+                teamPlayer.hidePlayer(player);
+                NameTagHandler.addToTeam(player, teamPlayer, ChatColor.AQUA, this.ladder.isBuild());
+            });
+
+            this.getTeamB().getPlayers().forEach(teamPlayer -> {
+                player.showPlayer(teamPlayer);
+                teamPlayer.hidePlayer(player);
+                NameTagHandler.addToTeam(player, teamPlayer, ChatColor.LIGHT_PURPLE, this.ladder.isBuild());
+            });
+        }
+
+        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+
+        playerData.setMatch(this);
+        playerData.setState(PlayerState.SPECTATE_MATCH);
+        playerData.loadLayout();
+        player.setAllowFlight(true);
+        player.setFlying(true);
+        player.updateInventory();
+        player.teleport(target.getLocation().clone().add(0, 2, 0));
+        player.sendMessage(CC.YELLOW + "You are spectating " + CC.RESET + Nucleus.getColoredName(target) + CC.YELLOW + ".");
+
+        if (this.isSoloMatch()) {
+            for (Player matchPlayer : new Player[]{this.getPlayerA(), this.getPlayerB()}) {
+                if (!player.hasPermission("praxi.spectate.hidden")) {
+                    matchPlayer.sendMessage(Nucleus.getColoredName(player) + CC.YELLOW + " has started spectating your match.");
+
+                } else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
+                    matchPlayer.sendMessage(CC.GRAY + "[Silent] " + Nucleus.getColoredName(player) + CC.YELLOW + " has started spectating your match.");
+                }
+            }
+        } else if (this.isTeamMatch()) {
+            for (Player matchPlayer : this.getPlayers()) {
+                if (!player.hasPermission("praxi.spectate.hidden")) {
+                    matchPlayer.sendMessage(Nucleus.getColoredName(player) + CC.YELLOW + " has started spectating your match.");
+
+                } else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
+                    matchPlayer.sendMessage(CC.GRAY + "[Silent] " + Nucleus.getColoredName(player) + CC.YELLOW + " has started spectating your match.");
+                }
+            }
+        }
+    }
+
+    public void removeSpectator(Player player) {
+        this.spectators.remove(player.getUniqueId());
+
+        if (this.isSoloMatch()) {
+            player.hidePlayer(this.getPlayerA());
+            player.hidePlayer(this.getPlayerB());
+
+            NameTagHandler.removeFromTeams(player, this.getPlayerA());
+            NameTagHandler.removeFromTeams(player, this.getPlayerB());
+            NameTagHandler.removeHealthDisplay(player);
+        } else if (this.isTeamMatch()) {
+            this.getPlayers().forEach(other -> {
+                player.hidePlayer(other);
+                other.hidePlayer(player);
+                NameTagHandler.removeFromTeams(player, other);
+            });
+        }
+
+        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+
+        if (this.state != MatchState.ENDING) {
+            if (this.isSoloMatch()) {
+                for (Player matchPlayer : new Player[]{this.getPlayerA(), this.getPlayerB()}) {
+                    if (!player.hasPermission("praxi.spectate.hidden")) {
+                        matchPlayer.sendMessage(Nucleus.getColoredName(player) + CC.YELLOW + " is no longer spectating your match.");
+                    } else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
+                        matchPlayer.sendMessage(CC.GRAY + "[Silent] " + Nucleus.getColoredName(player) + CC.YELLOW + " is no longer spectating your match.");
+                    }
+                }
+            } else if (this.isTeamMatch()) {
+                for (Player matchPlayer : this.getPlayers()) {
+                    if (!player.hasPermission("praxi.spectate.hidden")) {
+                        matchPlayer.sendMessage(Nucleus.getColoredName(player) + CC.YELLOW + " is no longer spectating your match.");
+                    } else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
+                        matchPlayer.sendMessage(CC.GRAY + "[Silent] " + Nucleus.getColoredName(player) + CC.YELLOW + " is no longer spectating your match.");
+                    }
+                }
+            }
+        }
+
+        playerData.setState(PlayerState.IN_LOBBY);
+        playerData.setMatch(null);
+        playerData.loadLayout();
+
+        PlayerUtil.spawn(player);
     }
 
 }

@@ -2,19 +2,13 @@ package me.joeleoli.praxi.party;
 
 import lombok.Getter;
 
-import me.joeleoli.commons.chat.ChatComponentBuilder;
-import me.joeleoli.commons.chat.ChatComponentExtras;
-import me.joeleoli.commons.util.CC;
-
-import me.joeleoli.commons.util.EnumUtil;
-import me.joeleoli.commons.util.Pair;
-import me.joeleoli.praxi.script.ScriptContext;
-import me.joeleoli.praxi.script.wrapper.PlayerWrapper;
-import me.joeleoli.praxi.team.Team;
-import me.joeleoli.praxi.team.TeamPlayer;
+import lombok.Setter;
+import me.joeleoli.nucleus.chat.ChatComponentBuilder;
+import me.joeleoli.nucleus.team.Team;
+import me.joeleoli.nucleus.team.TeamPlayer;
+import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.ObjectUtil;
 import me.joeleoli.praxi.player.PlayerState;
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigKey;
 import me.joeleoli.praxi.player.PlayerData;
 import me.joeleoli.praxi.queue.Queue;
 
@@ -32,7 +26,9 @@ public class Party extends Team<TeamPlayer> {
     private static List<Party> parties = new ArrayList<>();
 
     private PartyState state = PartyState.CLOSED;
-    private Map<TeamPlayer, Long> invited;
+    private Map<UUID, Long> invited;
+    @Setter
+    private PartyEvent selectedEvent;
 
     public Party(Player player) {
         super(new TeamPlayer(player.getUniqueId(), player.getName()));
@@ -42,26 +38,21 @@ public class Party extends Team<TeamPlayer> {
         parties.add(this);
     }
 
-    @Override
-    public List<Pair<String, String>> getReplacements() {
-        return Arrays.asList(
-                new Pair<>("party_count", this.getTeamPlayers().size() + ""),
-                new Pair<>("party_leader_name", this.getLeader().getName()),
-                new Pair<>("party_leader_display_name", this.getLeader().getDisplayName()),
-                new Pair<>("party_state", EnumUtil.toReadable(this.getState()))
-        );
-    }
-
     public void setState(PartyState state) {
         this.state = state;
 
-        this.broadcast(Config.getString(ConfigKey.PARTY_STATE_CHANGE, this));
+        this.broadcast(CC.YELLOW + "The party state has been changed to: " + CC.RESET + this.state.name());
     }
 
     public boolean canInvite(Player player) {
-        for (TeamPlayer playerInfo : this.invited.keySet()) {
-            if (playerInfo.getUuid().equals(player.getUniqueId())) {
-                return System.currentTimeMillis() - this.invited.get(playerInfo) + 30_0000 >= 0;
+        for (UUID uuid : this.invited.keySet()) {
+            if (uuid.equals(player.getUniqueId())) {
+                if (System.currentTimeMillis() - this.invited.get(uuid) >= 30_000) {
+                    this.invited.remove(uuid);
+                    return true;
+                }
+
+                return false;
             }
         }
 
@@ -69,9 +60,14 @@ public class Party extends Team<TeamPlayer> {
     }
 
     public boolean isInvited(Player player) {
-        for (TeamPlayer playerInfo : this.invited.keySet()) {
-            if (playerInfo.getUuid().equals(player.getUniqueId())) {
-                return System.currentTimeMillis() - this.invited.get(playerInfo) + 30_0000 < 0;
+        for (UUID uuid : this.invited.keySet()) {
+            if (uuid.equals(player.getUniqueId())) {
+                if (System.currentTimeMillis() - this.invited.get(uuid) >= 30_000) {
+                    this.invited.remove(uuid);
+                    return false;
+                }
+
+                return true;
             }
         }
 
@@ -90,26 +86,21 @@ public class Party extends Team<TeamPlayer> {
             Queue queue = Queue.getByUuid(leaderData.getQueuePlayer().getQueueUuid());
 
             if (queue != null) {
-                queue.removePlayer(leader);
+                queue.removePlayer(leaderData.getQueuePlayer());
             }
         }
     }
 
     public void invite(Player target) {
-        this.invited.put(new TeamPlayer(target.getUniqueId(), target.getName()), System.currentTimeMillis());
+        this.invited.put(target.getUniqueId(), System.currentTimeMillis());
 
         final HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentBuilder(CC.GRAY + "Click to join the party.").create());
         final ClickEvent clickEvent = new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/party join " + this.getLeader().getName());
-        final ScriptContext context = new ScriptContext(Config.getStringList(ConfigKey.PARTY_INVITE_SUCCESS));
 
-        context.getReplaceables().add(this);
-        context.getReplaceables().add(new PlayerWrapper(target, "target"));
-        context.addComponentExtras("clickable", new ChatComponentExtras(hoverEvent, clickEvent));
+        this.broadcast(CC.RESET + target.getDisplayName() + " " + CC.YELLOW + "has been invited to the party.");
 
-        this.broadcastComponents(context.buildComponents());
-
-        context.setLines(Config.getStringList(ConfigKey.PARTY_INVITE_RECEIVER));
-        context.buildComponents().forEach(target::sendMessage);
+        target.sendMessage(CC.YELLOW + "You have been invited to join " + CC.RESET + this.getLeader().getDisplayName() + CC.YELLOW + "'s party.");
+        target.sendMessage(new ChatComponentBuilder("").parse(CC.GOLD + "Click here to join the party.").attachToEachPart(clickEvent).attachToEachPart(hoverEvent).create());
     }
 
     public void join(Player player) {
@@ -118,14 +109,8 @@ public class Party extends Team<TeamPlayer> {
         }
 
         this.getTeamPlayers().add(new TeamPlayer(player.getUniqueId(), player.getName()));
-        this.invited.keySet().removeIf(playerInfo -> playerInfo.getUuid().equals(player.getUniqueId()));
-
-        final ScriptContext context = new ScriptContext(Config.getStringList(ConfigKey.PARTY_JOIN_SUCCESS));
-
-        context.getReplaceables().add(this);
-        context.getReplaceables().add(new PlayerWrapper(player));
-
-        this.broadcastComponents(context.buildComponents());
+        this.invited.keySet().removeIf(uuid -> uuid.equals(player.getUniqueId()));
+        this.broadcast(CC.RESET + player.getDisplayName() + CC.YELLOW + " has joined the party.");
 
         PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
 
@@ -138,12 +123,7 @@ public class Party extends Team<TeamPlayer> {
             this.cancelQueue();
         }
 
-        final ScriptContext context = new ScriptContext(Config.getStringList(kick ? ConfigKey.PARTY_KICK_SUCCESS : ConfigKey.PARTY_LEAVE_SUCCESS));
-
-        context.getReplaceables().add(this);
-        context.getReplaceables().add(new PlayerWrapper(player));
-
-        this.broadcastComponents(context.buildComponents());
+        this.broadcast(CC.RESET + player.getDisplayName() + CC.YELLOW + " has " + (kick ? "been kicked" : "left") + " the party.");
         this.getTeamPlayers().removeIf(playerInfo -> playerInfo.getUuid().equals(player.getUniqueId()));
 
         PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
@@ -159,11 +139,7 @@ public class Party extends Team<TeamPlayer> {
             this.cancelQueue();
         }
 
-        final ScriptContext context = new ScriptContext(Config.getStringList(ConfigKey.PARTY_DISBANDED));
-
-        context.getReplaceables().add(this);
-
-        this.broadcastComponents(context.buildComponents());
+        this.broadcast(CC.YELLOW + "The party has been disbanded.");
 
         this.getPlayers().forEach(player -> {
             PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
@@ -184,12 +160,15 @@ public class Party extends Team<TeamPlayer> {
             builder.append(", ");
         }
 
-        for (String line : Config.getStringList(ConfigKey.PARTY_INFORMATION)) {
-            player.sendMessage(
-                    Config.translateParty(line, this)
-                            .replace("{party_member_list}", builder.substring(0, builder.length() - 2))
-            );
-        }
+        final String[] lines = new String[]{
+                CC.HORIZONTAL_SEPARATOR,
+                CC.GOLD + "Party of " + this.getLeader().getName(),
+                CC.YELLOW + "State: " + CC.GRAY + ObjectUtil.toReadable(this.state),
+                CC.YELLOW + "Members: " + CC.GRAY + builder.toString().substring(0, builder.toString().length() - 2),
+                CC.HORIZONTAL_SEPARATOR
+        };
+
+        player.sendMessage(lines);
     }
 
 }

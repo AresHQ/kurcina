@@ -10,33 +10,43 @@ import java.util.Map;
 @Getter
 public class PlayerStatistics {
 
-    private Map<Ladder, LadderStatistics> ladders;
+    private Map<String, LadderStatistics> ladders;
 
     public PlayerStatistics() {
         this.ladders = new HashMap<>();
 
         for (Ladder ladder : Ladder.getLadders()) {
-            this.ladders.put(ladder, new LadderStatistics());
+            this.ladders.put(ladder.getName(), new LadderStatistics());
         }
     }
 
     public int getElo(Ladder ladder) {
-        if (!this.ladders.containsKey(ladder)) {
+        if (!this.ladders.containsKey(ladder.getName())) {
             return 1000;
         }
 
-        return this.ladders.get(ladder).getElo();
+        return this.ladders.get(ladder.getName()).getElo();
     }
 
     public LadderStatistics getLadderStatistics(Ladder ladder) {
-        LadderStatistics ladderStatistics = this.ladders.get(ladder);
+        LadderStatistics ladderStatistics = this.ladders.get(ladder.getName());
 
         if (ladderStatistics == null) {
             ladderStatistics = new LadderStatistics();
-            this.ladders.put(ladder, ladderStatistics);
+            this.ladders.put(ladder.getName(), ladderStatistics);
         }
 
         return ladderStatistics;
+    }
+
+    public int getWins() {
+        int wins = 0;
+
+        for (LadderStatistics stats : this.ladders.values()) {
+            wins += stats.getWon();
+        }
+
+        return wins;
     }
 
     public double getWinRatio() {

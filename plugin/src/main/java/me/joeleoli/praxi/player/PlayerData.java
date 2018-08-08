@@ -6,17 +6,17 @@ import com.google.gson.JsonObject;
 
 import com.mongodb.client.model.ReplaceOptions;
 
-import me.joeleoli.commons.util.InventoryUtil;
-import me.joeleoli.commons.util.MongoUtil;
-import me.joeleoli.commons.util.PlayerUtil;
-import me.joeleoli.commons.util.Position;
+import me.joeleoli.nucleus.cooldown.Cooldown;
+import me.joeleoli.nucleus.player.PlayerInfo;
+import me.joeleoli.nucleus.util.InventoryUtil;
+import me.joeleoli.nucleus.util.MongoUtil;
+import me.joeleoli.nucleus.util.PlayerUtil;
 
 import me.joeleoli.praxi.Praxi;
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigKey;
+import me.joeleoli.praxi.event.Event;
 import me.joeleoli.praxi.hotbar.HotbarLayout;
+import me.joeleoli.praxi.kit.Kit;
 import me.joeleoli.praxi.kit.NamedKit;
-import me.joeleoli.praxi.cooldown.Cooldown;
 import me.joeleoli.praxi.duel.DuelRequest;
 import me.joeleoli.praxi.duel.DuelProcedure;
 import me.joeleoli.praxi.ladder.Ladder;
@@ -29,7 +29,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -44,11 +43,9 @@ public class PlayerData extends PlayerInfo {
     @Getter
     private static Map<UUID, PlayerData> players = new HashMap<>();
 
-    private final Bson filter;
     @Setter
     private PlayerState state;
-    private PlayerStatistics playerStatistics = new PlayerStatistics();
-    private PlayerSettings playerSettings = new PlayerSettings();
+    private PlayerStatistics statistics = new PlayerStatistics();
     private KitEditor kitEditor = new KitEditor();
     private Map<String, NamedKit[]> kits = new HashMap<>();
     @Setter
@@ -56,25 +53,54 @@ public class PlayerData extends PlayerInfo {
     @Setter
     private Match match;
     @Setter
+    private Event event;
+    @Setter
     private QueuePlayer queuePlayer;
     @Setter
     private Cooldown enderpearlCooldown;
-    private List<Position> splashPositions = new ArrayList<>();
-    private List<Position> soundPositions = new ArrayList<>();
-    private List<DuelRequest> duelRequests = new ArrayList<>();
+    private Map<UUID, DuelRequest> sentDuelRequests = new HashMap<>();
     @Setter
     private DuelProcedure duelProcedure;
-
     private boolean loaded;
 
     public PlayerData(UUID uuid, String name) {
         super(uuid, name);
 
-        this.filter = MongoUtil.getFindDocument("uuid", this.getUuid().toString());
         this.state = PlayerState.IN_LOBBY;
 
         for (Ladder ladder : Ladder.getLadders()) {
             this.kits.put(ladder.getName(), new NamedKit[4]);
+        }
+    }
+
+    public boolean canSendDuelRequest(Player player) {
+        if (!this.sentDuelRequests.containsKey(player.getUniqueId())) {
+            return true;
+        }
+
+        final DuelRequest request = this.sentDuelRequests.get(player.getUniqueId());
+
+        if (request.isExpired()) {
+            this.sentDuelRequests.remove(player.getUniqueId());
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public boolean isPendingDuelRequest(Player player) {
+        if (!this.sentDuelRequests.containsKey(player.getUniqueId())) {
+            this.sentDuelRequests.keySet().forEach(key -> System.out.println(key.toString()));
+            return false;
+        }
+
+        final DuelRequest request = this.sentDuelRequests.get(player.getUniqueId());
+
+        if (request.isExpired()) {
+            this.sentDuelRequests.remove(player.getUniqueId());
+            return false;
+        } else {
+            return true;
         }
     }
 
@@ -83,22 +109,25 @@ public class PlayerData extends PlayerInfo {
     }
 
     public boolean isInMatch() {
-        return (this.state == PlayerState.IN_FIGHT) && this.match != null;
+        return (this.state == PlayerState.IN_MATCH) && this.match != null;
     }
 
     public boolean isSpectating() {
         return this.state == PlayerState.SPECTATE_MATCH && this.match != null;
     }
 
+    public boolean isInEvent() {
+        return this.state == PlayerState.IN_EVENT && this.event != null;
+    }
+
     public boolean isOnEnderpearlCooldown() {
-        return this.enderpearlCooldown != null && this.enderpearlCooldown.getPassed() < Config.getLong(ConfigKey
-                .ENDER_PEARL_CD_TIME);
+        return this.enderpearlCooldown != null && this.enderpearlCooldown.getPassed() < 16_000;
     }
 
     public void loadLayout() {
         Player player = this.toPlayer();
 
-        if (player == null) {
+        if (player == null || !player.isOnline()) {
             return;
         }
 
@@ -166,7 +195,7 @@ public class PlayerData extends PlayerInfo {
     public List<ItemStack> getKitItems(Ladder ladder) {
         List<ItemStack> toReturn = new ArrayList<>();
 
-        toReturn.add(Config.getConfigItem(ConfigKey.KIT_DEFAULT_KIT).toItemStack());
+        toReturn.add(Kit.DEFAULT_KIT);
 
         for (NamedKit kit : this.kits.get(ladder.getName())) {
             if (kit != null) {
@@ -189,13 +218,9 @@ public class PlayerData extends PlayerInfo {
 
     public void load() {
         try {
-            Document document = PracticeMongo.getInstance().getPlayers().find(this.filter).first();
+            Document document = PracticeMongo.getInstance().getPlayers().find(MongoUtil.find("uuid", this.getUuid().toString())).first();
 
             if (document == null) {
-                // If the document does not exist, go ahead
-                // and save their data. Set loaded to true
-                // prematurely so the player doesn't get
-                // kicked from the server.
                 this.loaded = true;
                 this.save();
                 return;
@@ -205,7 +230,6 @@ public class PlayerData extends PlayerInfo {
                 this.setName(document.getString("name"));
             }
 
-            final Document settingsDocument = (Document) document.get("settings");
             final Document statisticsDocument = (Document) document.get("statistics");
             final Document laddersDocument = (Document) statisticsDocument.get("ladders");
             final Document kitsDocument = (Document) document.get("kits");
@@ -224,13 +248,8 @@ public class PlayerData extends PlayerInfo {
                 ladderStatistics.setWon(ladderDocument.getInteger("won"));
                 ladderStatistics.setLost(ladderDocument.getInteger("lost"));
 
-                this.playerStatistics.getLadders().put(ladder, ladderStatistics);
+                this.statistics.getLadders().put(ladder.getName(), ladderStatistics);
             }
-
-            this.playerSettings.setGlobalChat(settingsDocument.getBoolean("global-chat"));
-            this.playerSettings.setReceiveDuelRequests(settingsDocument.getBoolean("receive-duel-requests"));
-            this.playerSettings.setShowScoreboard(settingsDocument.getBoolean("show-scoreboard"));
-            this.playerSettings.setAllowSpectators(settingsDocument.getBoolean("allow-spectators"));
 
             for (String key : kitsDocument.keySet()) {
                 Ladder ladder = Ladder.getByName(key);
@@ -266,26 +285,19 @@ public class PlayerData extends PlayerInfo {
     public void save() {
         Document laddersDocument = new Document();
 
-        for (Map.Entry<Ladder, LadderStatistics> entry : this.playerStatistics.getLadders().entrySet()) {
+        for (Map.Entry<String, LadderStatistics> entry : this.statistics.getLadders().entrySet()) {
             Document ladder = new Document();
 
             ladder.put("elo", entry.getValue().getElo());
             ladder.put("won", entry.getValue().getWon());
             ladder.put("lost", entry.getValue().getLost());
 
-            laddersDocument.put(entry.getKey().getName(), ladder);
+            laddersDocument.put(entry.getKey(), ladder);
         }
 
         Document statisticsDocument = new Document();
 
         statisticsDocument.put("ladders", laddersDocument);
-
-        Document settingsDocument = new Document();
-
-        settingsDocument.put("global-chat", this.playerSettings.isGlobalChat());
-        settingsDocument.put("receive-duel-requests", this.playerSettings.isReceiveDuelRequests());
-        settingsDocument.put("show-scoreboard", this.playerSettings.isShowScoreboard());
-        settingsDocument.put("allow-spectators", this.playerSettings.isAllowSpectators());
 
         Document kitsDocument = new Document();
 
@@ -314,11 +326,10 @@ public class PlayerData extends PlayerInfo {
 
         document.put("uuid", this.getUuid().toString());
         document.put("name", this.getName());
-        document.put("settings", settingsDocument);
         document.put("statistics", statisticsDocument);
         document.put("kits", kitsDocument);
 
-        PracticeMongo.getInstance().getPlayers().replaceOne(this.filter, document, new ReplaceOptions().upsert(true));
+        PracticeMongo.getInstance().getPlayers().replaceOne(MongoUtil.find("uuid", this.getUuid().toString()), document, new ReplaceOptions().upsert(true));
     }
 
     public static PlayerData getByUuid(UUID uuid) {

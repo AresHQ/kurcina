@@ -3,7 +3,7 @@ package me.joeleoli.praxi.match;
 import lombok.Getter;
 import lombok.Setter;
 
-import me.joeleoli.commons.team.TeamPlayer;
+import me.joeleoli.nucleus.team.TeamPlayer;
 
 import org.bukkit.entity.Player;
 
@@ -24,7 +24,28 @@ public class MatchPlayer extends TeamPlayer {
             return 100.0;
         }
 
-        return 100.0 - (this.potionsMissed / this.potionsThrown);
+        return Math.round(100.0D - (((double) this.potionsMissed / (double) this.potionsThrown) * 100.0D));
+    }
+
+    public void incrementPotionsThrown() {
+        this.potionsThrown++;
+    }
+
+    public void incrementPotionsMissed() {
+        this.potionsMissed++;
+    }
+
+    public void handleHit() {
+        this.hits++;
+        this.combo++;
+
+        if (this.combo > this.longestCombo) {
+            this.longestCombo = this.combo;
+        }
+    }
+
+    public void resetCombo() {
+        this.combo = 0;
     }
 
 }

@@ -1,6 +1,6 @@
 package me.joeleoli.praxi.arena.selection;
 
-import me.joeleoli.commons.util.CC;
+import me.joeleoli.nucleus.util.CC;
 import me.joeleoli.praxi.Praxi;
 import me.joeleoli.praxi.cuboid.Cuboid;
 

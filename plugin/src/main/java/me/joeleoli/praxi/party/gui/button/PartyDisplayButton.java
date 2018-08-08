@@ -2,17 +2,15 @@ package me.joeleoli.praxi.party.gui.button;
 
 import lombok.AllArgsConstructor;
 
-import me.joeleoli.commons.menu.Button;
-import me.joeleoli.commons.util.PlayerUtil;
-
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigItem;
-import me.joeleoli.praxi.config.ConfigKey;
+import me.joeleoli.nucleus.menu.Button;
+import me.joeleoli.nucleus.team.TeamPlayer;
+import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.praxi.party.Party;
 
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,23 +22,29 @@ public class PartyDisplayButton extends Button {
 
     @Override
     public ItemStack getButtonItem(Player player) {
-        ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_OTHER_PARTIES_PARTY_DISPLAY_BUTTON);
-        ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        List<String> lore = new ArrayList<>();
+        final List<String> lore = new ArrayList<>();
+        int added = 0;
 
-        this.party.getPlayers().forEach(other -> {
-            configItem.getLore().forEach(line -> {
-                lore.add(Config.translatePlayerAndTarget(line, other, null));
-            });
-        });
+        for (TeamPlayer teamPlayer : this.party.getTeamPlayers()) {
+            if (added >= 10) {
+                break;
+            }
 
-        itemMeta.setDisplayName(Config.translateParty(configItem.getName(), this.party));
-        itemMeta.setLore(lore);
+            lore.add(CC.GRAY + " - " + CC.RESET + teamPlayer.getDisplayName());
 
-        itemStack.setItemMeta(itemMeta);
+            added++;
+        }
 
-        return itemStack;
+        if (this.party.getTeamPlayers().size() != added) {
+            lore.add(CC.GRAY + " and " + (this.party.getTeamPlayers().size() - added) + " others...");
+        }
+
+        return new ItemBuilder(Material.SKULL_ITEM)
+                .amount(this.party.getTeamPlayers().size())
+                .durability(3)
+                .name(CC.GOLD + this.party.getLeader().getName() + "s Party")
+                .lore(lore)
+                .build();
     }
 
 }

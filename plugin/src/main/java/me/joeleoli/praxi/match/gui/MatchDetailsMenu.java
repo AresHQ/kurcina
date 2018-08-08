@@ -2,27 +2,20 @@ package me.joeleoli.praxi.match.gui;
 
 import lombok.AllArgsConstructor;
 
-import me.joeleoli.commons.command.CommandHandler;
-import me.joeleoli.commons.menu.Button;
-import me.joeleoli.commons.menu.Menu;
-import me.joeleoli.commons.menu.buttons.DisplayButton;
-import me.joeleoli.commons.util.InventoryUtil;
-
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigItem;
-import me.joeleoli.praxi.config.ConfigKey;
+import me.joeleoli.nucleus.command.CommandHandler;
+import me.joeleoli.nucleus.menu.Button;
+import me.joeleoli.nucleus.menu.Menu;
+import me.joeleoli.nucleus.menu.buttons.DisplayButton;
+import me.joeleoli.nucleus.util.*;
 import me.joeleoli.praxi.match.MatchPlayer;
 import me.joeleoli.praxi.match.MatchSnapshot;
-import me.joeleoli.praxi.script.ScriptContext;
-import me.joeleoli.praxi.script.wrapper.PlayerInfoWrapper;
-import me.joeleoli.praxi.script.wrapper.PlayerWrapper;
-import me.joeleoli.praxi.script.wrapper.PotionEffectWrapper;
 
+import org.apache.commons.lang.StringEscapeUtils;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 
 import java.util.*;
@@ -34,27 +27,22 @@ public class MatchDetailsMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        ScriptContext context = new ScriptContext(Config.getString(ConfigKey.MENU_MATCH_DETAILS_TITLE));
-
-        context.addCondition("canSwitch", this.snapshot.getSwitchTo() != null);
-        context.getReplaceables().add(new PlayerWrapper(player));
-        context.getReplaceables().add(new PlayerInfoWrapper(this.snapshot.getMatchPlayer(), "target"));
-
-        if (this.snapshot.getSwitchTo() != null) {
-            context.getReplaceables().add(new PlayerInfoWrapper(this.snapshot.getMatchPlayer(), "switch_to"));
-        }
-
-        return context.buildSingleLine();
+        return ChatColor.GOLD + "Inventory of " + this.snapshot.getMatchPlayer().getName();
     }
 
     @Override
     public Map<Integer, Button> getButtons(Player player) {
-        Map<Integer, Button> buttons = new HashMap<>();
+        final Map<Integer, Button> buttons = new HashMap<>();
+        final ItemStack[] fixedContents = InventoryUtil.fixInventoryOrder(this.snapshot.getContents());
 
-        for (ItemStack itemStack : InventoryUtil.fixInventoryOrder(this.snapshot.getContents())) {
-            if (itemStack != null && itemStack.getType() != Material.AIR) {
-                buttons.put(buttons.size(), new DisplayButton(itemStack, true));
+        for (int i = 0; i < fixedContents.length; i++) {
+            final ItemStack itemStack = fixedContents[i];
+
+            if (itemStack == null || itemStack.getType() == Material.AIR) {
+                continue;
             }
+
+            buttons.put(i, new DisplayButton(itemStack, true));
         }
 
         for (int i = 0; i < this.snapshot.getArmor().length; i++) {
@@ -72,7 +60,7 @@ public class MatchDetailsMenu extends Menu {
         buttons.put(pos++, new EffectsButton(this.snapshot.getEffects()));
 
         if (this.snapshot.shouldDisplayRemainingPotions()) {
-            buttons.put(pos++, new PotionsButton(this.snapshot.getRemainingPotions()));
+            buttons.put(pos++, new PotionsButton(this.snapshot.getMatchPlayer().getName(), this.snapshot.getRemainingPotions()));
         }
 
         buttons.put(pos, new StatisticsButton(this.snapshot.getMatchPlayer()));
@@ -86,17 +74,8 @@ public class MatchDetailsMenu extends Menu {
 
     @Override
     public void onOpen(Player player) {
-        final ScriptContext context = new ScriptContext(Config.getStringList(ConfigKey.MATCH_DETAILS_SUCCESS));
-
-        context.addCondition("canSwitch", this.snapshot.getSwitchTo() != null);
-        context.getReplaceables().add(new PlayerWrapper(player));
-        context.getReplaceables().add(new PlayerInfoWrapper(this.snapshot.getMatchPlayer(), "target"));
-
-        if (this.snapshot.getSwitchTo() != null) {
-            context.getReplaceables().add(new PlayerInfoWrapper(this.snapshot.getSwitchTo(), "switch_to"));
-        }
-
-        context.buildComponents().forEach(player::sendMessage);
+        player.sendMessage(CC.GREEN + "Viewing inventory of " + CC.RESET + this.snapshot.getMatchPlayer()
+                .getDisplayName() + CC.GREEN + "...");
     }
 
     @AllArgsConstructor
@@ -106,22 +85,13 @@ public class MatchDetailsMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_MATCH_DETAILS_SWITCH_BUTTON);
-            final ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final ScriptContext context = new ScriptContext(configItem.getName());
-
-            context.getReplaceables().add(new PlayerWrapper(player));
-            context.getReplaceables().add(new PlayerInfoWrapper(this.switchTo, "switch_to"));
-
-            itemMeta.setDisplayName(context.buildSingleLine());
-
-            context.setLines(configItem.getLore());
-
-            itemMeta.setLore(context.buildMultipleLines());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.LEVER)
+                    .name(CC.GREEN + "View " + this.switchTo.getName() + "'s inventory")
+                    .lore(Arrays.asList(
+                            "",
+                            CC.YELLOW + "Swap your view to " + this.switchTo.getName() + "'s inventory"
+                    ))
+                    .build();
         }
 
         @Override
@@ -138,22 +108,10 @@ public class MatchDetailsMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_MATCH_DETAILS_HEALTH_BUTTON);
-            final ItemStack itemStack = new ItemStack(configItem.getMaterial(), this.health == 0 ? 1 : this.health, configItem.getDurability());
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final ScriptContext context = new ScriptContext(configItem.getName());
-
-            context.addVariable("health", this.health + "");
-            context.getReplaceables().add(new PlayerWrapper(player));
-
-            itemMeta.setDisplayName(context.buildSingleLine());
-
-            context.setLines(configItem.getLore());
-
-            itemMeta.setLore(context.buildMultipleLines());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.MELON)
+                    .name("&a" + this.health + "/10 " + StringEscapeUtils.unescapeJava("\u2764"))
+                    .amount(this.health == 0 ? 1 : this.health)
+                    .build();
         }
 
     }
@@ -165,22 +123,10 @@ public class MatchDetailsMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_MATCH_DETAILS_HUNGER_BUTTON);
-            final ItemStack itemStack = new ItemStack(configItem.getMaterial(), this.hunger == 0 ? 1 : this.hunger, configItem.getDurability());
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final ScriptContext context = new ScriptContext(configItem.getName());
-
-            context.addVariable("hunger", this.hunger + "");
-            context.getReplaceables().add(new PlayerWrapper(player));
-
-            itemMeta.setDisplayName(context.buildSingleLine());
-
-            context.setLines(configItem.getLore());
-
-            itemMeta.setLore(context.buildMultipleLines());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.COOKED_BEEF)
+                    .name("&a" + this.hunger + "/20 Hunger")
+                    .amount(this.hunger == 0 ? 1 : this.hunger)
+                    .build();
         }
 
     }
@@ -192,25 +138,29 @@ public class MatchDetailsMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_MATCH_DETAILS_EFFECTS_BUTTON);
-            final ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final ScriptContext context = new ScriptContext(configItem.getName());
+            final ItemBuilder builder = new ItemBuilder(Material.POTION).name(CC.GREEN + "Potion Effects");
 
-            context.addCondition("effectsEmpty", this.effects.isEmpty());
-            context.setForLoopEntries(new ArrayList<>());
-            context.getReplaceables().add(new PlayerWrapper(player));
+            if (this.effects.isEmpty()) {
+                builder.lore(Arrays.asList(
+                        "",
+                        CC.GRAY + "No effects"
+                ));
+            } else {
+                final List<String> lore = new ArrayList<>();
 
-            this.effects.forEach(effect -> context.getForLoopEntries().add(new PotionEffectWrapper(effect)));
+                lore.add("");
 
-            itemMeta.setDisplayName(context.buildSingleLine());
+                this.effects.forEach(effect -> {
+                    final String name = BukkitUtil.getName(effect.getType()) + " " + (effect.getAmplifier() + 1);
+                    final String duration = CC.GRAY + " (" + TimeUtil.formatTime((effect.getDuration() / 20) * 1000) + ")";
 
-            context.setLines(configItem.getLore());
+                    lore.add(CC.AQUA + name + duration);
+                });
 
-            itemMeta.setLore(context.buildMultipleLines());
-            itemStack.setItemMeta(itemMeta);
+                builder.lore(lore);
+            }
 
-            return itemStack;
+            return builder.build();
         }
 
     }
@@ -218,27 +168,17 @@ public class MatchDetailsMenu extends Menu {
     @AllArgsConstructor
     private class PotionsButton extends Button {
 
+        private String name;
         private int potions;
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_MATCH_DETAILS_POTIONS_BUTTON);
-            final ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final ScriptContext context = new ScriptContext(configItem.getName());
-
-            context.addCondition("noPotions", this.potions == 0);
-            context.addVariable("potions", this.potions + "");
-            context.getReplaceables().add(new PlayerWrapper(player));
-
-            itemMeta.setDisplayName(context.buildSingleLine());
-
-            context.setLines(configItem.getLore());
-
-            itemMeta.setLore(context.buildMultipleLines());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.POTION)
+                    .durability(16421)
+                    .amount(this.potions == 0 ? 1 : this.potions)
+                    .name(CC.GREEN + this.potions + " health potion" + (this.potions == 1 ? "" : "s"))
+                    .lore(CC.YELLOW + this.name + " had " + this.potions + " health potion" + (this.potions == 1 ? "" : "s") + " left.")
+                    .build();
         }
 
     }
@@ -250,26 +190,16 @@ public class MatchDetailsMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_MATCH_DETAILS_STATISTICS_BUTTON);
-            final ItemStack itemStack = new ItemStack(configItem.getMaterial(), 1, configItem.getDurability());
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final ScriptContext context = new ScriptContext(configItem.getName());
-
-            context.addVariable("hits", this.matchPlayer.getHits() + "");
-            context.addVariable("longest_combo", this.matchPlayer.getLongestCombo() + "");
-            context.addVariable("potions_thrown", this.matchPlayer.getPotionsThrown() + "");
-            context.addVariable("potions_missed", this.matchPlayer.getPotionsMissed() + "");
-            context.addVariable("potion_accuracy", this.matchPlayer.getPotionAccuracy() + "");
-            context.getReplaceables().add(new PlayerWrapper(player));
-
-            itemMeta.setDisplayName(context.buildSingleLine());
-
-            context.setLines(configItem.getLore());
-
-            itemMeta.setLore(context.buildMultipleLines());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(Material.PAPER)
+                    .name(CC.GREEN + "Match Stats")
+                    .lore(Arrays.asList(
+                            CC.PINK + "Hits: " + CC.YELLOW + this.matchPlayer.getHits(),
+                            CC.PINK + "Longest Combo: " + CC.YELLOW + this.matchPlayer.getLongestCombo(),
+                            CC.PINK + "Potions Thrown: " + CC.YELLOW + this.matchPlayer.getPotionsThrown(),
+                            CC.PINK + "Potions Missed: " + CC.YELLOW + this.matchPlayer.getPotionsMissed(),
+                            CC.PINK + "Potion Accuracy: " + CC.YELLOW + this.matchPlayer.getPotionAccuracy()
+                    ))
+                    .build();
         }
 
     }

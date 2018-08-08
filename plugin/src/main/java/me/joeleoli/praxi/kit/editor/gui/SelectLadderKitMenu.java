@@ -2,22 +2,19 @@ package me.joeleoli.praxi.kit.editor.gui;
 
 import lombok.AllArgsConstructor;
 
-import me.joeleoli.commons.menu.Button;
-import me.joeleoli.commons.menu.Menu;
+import me.joeleoli.nucleus.menu.Button;
+import me.joeleoli.nucleus.menu.Menu;
 
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigItem;
-import me.joeleoli.praxi.config.ConfigKey;
+import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.praxi.ladder.Ladder;
 import me.joeleoli.praxi.player.PlayerData;
-import me.joeleoli.praxi.script.ScriptContext;
 
-import me.joeleoli.praxi.script.wrapper.PlayerWrapper;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +22,7 @@ public class SelectLadderKitMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        return Config.getString(ConfigKey.MENU_SELECT_LADDER_KIT_TITLE);
+        return CC.GOLD + CC.BOLD + "Select a ladder...";
     }
 
     @Override
@@ -48,24 +45,13 @@ public class SelectLadderKitMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ConfigItem configItem = Config.getConfigItem(ConfigKey.MENU_SELECT_LADDER_KIT_DISPLAY_BUTTON);
-            final ItemStack itemStack = this.ladder.getDisplayIcon();
-            final ItemMeta itemMeta = itemStack.getItemMeta();
-            final ScriptContext context = new ScriptContext(configItem.getName());
-
-            context.getReplaceables().add(new PlayerWrapper(player));
-            context.getReplaceables().add(this.ladder);
-            context.buildComponents();
-
-            itemMeta.setDisplayName(context.buildSingleLine());
-
-            context.setLines(configItem.getLore());
-            context.buildComponents();
-
-            itemMeta.setLore(context.getLines());
-            itemStack.setItemMeta(itemMeta);
-
-            return itemStack;
+            return new ItemBuilder(this.ladder.getDisplayIcon())
+                    .name(this.ladder.getDisplayName())
+                    .lore(Arrays.asList(
+                            "",
+                            CC.YELLOW + "Click to select " + CC.BOLD + this.ladder.getName() + CC.YELLOW + "."
+                    ))
+                    .build();
         }
 
         @Override

@@ -1,53 +1,67 @@
 package me.joeleoli.praxi.command;
 
-import me.joeleoli.commons.command.Command;
-import me.joeleoli.commons.command.param.Parameter;
-
+import me.joeleoli.nucleus.Nucleus;
+import me.joeleoli.nucleus.command.Command;
+import me.joeleoli.nucleus.command.param.Parameter;
+import me.joeleoli.nucleus.util.CC;
 import me.joeleoli.praxi.arena.Arena;
 import me.joeleoli.praxi.duel.DuelRequest;
 import me.joeleoli.praxi.match.MatchPlayer;
-import me.joeleoli.praxi.match.MatchType;
+import me.joeleoli.praxi.match.impl.SoloMatch;
 import me.joeleoli.praxi.player.PlayerState;
-import me.joeleoli.praxi.config.Config;
-import me.joeleoli.praxi.config.ConfigKey;
 import me.joeleoli.praxi.duel.DuelProcedure;
-import me.joeleoli.praxi.duel.gui.DuelLadderMenu;
+import me.joeleoli.praxi.duel.gui.DuelSelectLadderMenu;
 import me.joeleoli.praxi.match.Match;
 import me.joeleoli.praxi.player.PlayerData;
-import me.joeleoli.praxi.team.Team;
+import me.joeleoli.praxi.player.PracticeSetting;
 
 import org.bukkit.entity.Player;
-
-import java.util.Iterator;
 
 public class DuelCommands {
 
     @Command(names = "duel")
     public static void duel(Player player, @Parameter(name = "target") Player target) {
-        if (player.getUniqueId().equals(target.getUniqueId())) {
-            player.sendMessage(Config.getString(ConfigKey.DUEL_INVITE_SELF));
+        if (Nucleus.isFrozen(player)) {
+            player.sendMessage(CC.RED + "You cannot duel while frozen.");
             return;
         }
 
-        PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+        if (Nucleus.isFrozen(target)) {
+            player.sendMessage(CC.RED + "You cannot duel a frozen player.");
+            return;
+        }
+
+        if (player.getUniqueId().equals(target.getUniqueId())) {
+            player.sendMessage(CC.RED + "You cannot duel yourself.");
+            return;
+        }
+
+        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+        final PlayerData targetData = PlayerData.getByUuid(target.getUniqueId());
+
+        if (playerData.getParty() != null) {
+            player.sendMessage(CC.RED + "You cannot duel whilst in a party.");
+            return;
+        }
 
         if (playerData.isInMatch() || playerData.isInQueue()) {
-            player.sendMessage(Config.getString(ConfigKey.DUEL_REJECTED_STATE));
+            player.sendMessage(CC.RED + "You must be in the lobby to send a duel request.");
             return;
         }
 
-        PlayerData targetData = PlayerData.getByUuid(target.getUniqueId());
-
-        if (!targetData.getPlayerSettings().isReceiveDuelRequests()) {
-            player.sendMessage(Config.translatePlayerAndTarget(Config.getString(ConfigKey.DUEL_REJECTED_TARGET_DISABLED), player, target));
+        if (targetData.isInMatch() || targetData.isInQueue() || targetData.getParty() != null) {
+            player.sendMessage(Nucleus.getColoredName(target) + CC.RED + " is currently busy.");
             return;
         }
 
-        for (DuelRequest duelRequest : targetData.getDuelRequests()) {
-            if (duelRequest.getSender().equals(player.getUniqueId())) {
-                player.sendMessage(Config.translatePlayerAndTarget(Config.getString(ConfigKey.DUEL_ALREADY_SENT), player, target));
-                return;
-            }
+        if (!Nucleus.<Boolean>getSetting(target, PracticeSetting.RECEIVE_DUEL_REQUESTS)) {
+            player.sendMessage(CC.RED + "That player is not accepting duel requests at the moment.");
+            return;
+        }
+
+        if (!playerData.canSendDuelRequest(player)) {
+            player.sendMessage(CC.RED + "You have already sent that player a duel request.");
+            return;
         }
 
         DuelProcedure procedure = new DuelProcedure();
@@ -57,75 +71,63 @@ public class DuelCommands {
 
         playerData.setDuelProcedure(procedure);
 
-        new DuelLadderMenu().openMenu(player);
+        new DuelSelectLadderMenu().openMenu(player);
     }
 
     @Command(names = "duel accept")
     public static void accept(Player player, @Parameter(name = "target") Player target) {
-        PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-        Iterator<DuelRequest> requestIterator = playerData.getDuelRequests().iterator();
-
-        while (requestIterator.hasNext()) {
-            DuelRequest request = requestIterator.next();
-
-            if (request.getSender().equals(target.getUniqueId())) {
-                if (System.currentTimeMillis() - request.getTimestamp() >= 30_000) {
-                    requestIterator.remove();
-                    player.sendMessage(Config.translatePlayerAndTarget(Config.getString(ConfigKey.DUEL_INVITE_EXPIRED), player, target));
-                } else {
-                    PlayerData targetData = PlayerData.getByUuid(target.getUniqueId());
-
-                    if (playerData.isInMatch() || playerData.isInQueue()) {
-                        player.sendMessage(Config.translatePlayerAndTarget(Config.getString(ConfigKey.DUEL_REJECTED_STATE), player, target));
-                        return;
-                    }
-
-                    if (targetData.isInMatch() || targetData.isInQueue()) {
-                        player.sendMessage(Config.translatePlayerAndTarget(Config.getString(ConfigKey.DUEL_REJECTED_TARGET_STATE), player, target));
-                        return;
-                    }
-
-                    Arena arena = request.getArena();
-
-                    if (arena.isActive()) {
-                        for (Arena other : Arena.getArenas()) {
-                            if (!other.isActive() && other.isSetup() && other.getType() == arena.getType()) {
-                                arena = other;
-                            }
-                        }
-                    }
-
-                    if (arena.isActive()) {
-                        return;
-                    }
-
-                    // Update arena
-                    arena.setActive(true);
-
-                    // Create match
-                    Match match = new Match(MatchType.ONE_VS_ONE, request.getLadder(), arena, false);
-
-                    match.setTeamA(new Team<>(new MatchPlayer(player)));
-                    match.setTeamB(new Team<>(new MatchPlayer(player)));
-
-                    // Update player's states
-                    playerData.setState(PlayerState.IN_FIGHT);
-                    playerData.setQueuePlayer(null);
-                    playerData.setMatch(match);
-
-                    targetData.setState(PlayerState.IN_FIGHT);
-                    targetData.setQueuePlayer(null);
-                    targetData.setMatch(match);
-
-                    // Start match
-                    match.start();
-                }
-
-                return;
-            }
+        if (Nucleus.isFrozen(player)) {
+            player.sendMessage(CC.RED + "You cannot duel while frozen.");
+            return;
         }
 
-        player.sendMessage(Config.translatePlayerAndTarget(Config.getString(ConfigKey.DUEL_NOT_INVITED), player, target));
+        if (Nucleus.isFrozen(target)) {
+            player.sendMessage(CC.RED + "You cannot duel a frozen player.");
+            return;
+        }
+
+        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+        final PlayerData targetData = PlayerData.getByUuid(target.getUniqueId());
+
+        if (!targetData.isPendingDuelRequest(player)) {
+            player.sendMessage(CC.RED + "You do not have a pending duel request from " + Nucleus.getColoredName(target) + CC.RED + ".");
+            return;
+        }
+
+        if (playerData.isInMatch() || playerData.isInQueue()) {
+            player.sendMessage(CC.RED + "You must be in the lobby to accept a duel.");
+            return;
+        }
+
+        if (targetData.isInMatch() || targetData.isInQueue()) {
+            player.sendMessage(CC.RED + "That player is no longer available.");
+            return;
+        }
+
+        final DuelRequest request = targetData.getSentDuelRequests().get(player.getUniqueId());
+
+        Arena arena = request.getArena();
+
+        if (arena.isActive()) {
+            player.sendMessage(CC.RED + "Tried to start a match but there are no available arenas.");
+            return;
+        }
+
+        // Update arena
+        arena.setActive(true);
+
+        // Create match
+        Match match = new SoloMatch(new MatchPlayer(player), new MatchPlayer(target), request.getLadder(), arena, false);
+
+        // Update player's states
+        playerData.setState(PlayerState.IN_MATCH);
+        playerData.setMatch(match);
+
+        targetData.setState(PlayerState.IN_MATCH);
+        targetData.setMatch(match);
+
+        // Start match
+        match.handleStart();
     }
 
 }

@@ -2,8 +2,8 @@ package me.joeleoli.praxi.arena;
 
 import lombok.Getter;
 
-import me.joeleoli.commons.util.LocationUtil;
-import me.joeleoli.commons.config.ConfigCursor;
+import me.joeleoli.nucleus.util.LocationUtil;
+import me.joeleoli.nucleus.config.ConfigCursor;
 
 import me.joeleoli.praxi.Praxi;
 
@@ -32,6 +32,7 @@ public class StandaloneArena extends Arena {
         cursor.set("spawn2", LocationUtil.serialize(this.spawn2));
         cursor.set("cuboid.location1", LocationUtil.serialize(this.getLowerCorner()));
         cursor.set("cuboid.location2", LocationUtil.serialize(this.getUpperCorner()));
+        cursor.set("ladders", this.getLadders());
 
         if (!this.duplicates.isEmpty()) {
             AtomicInteger i = new AtomicInteger();
