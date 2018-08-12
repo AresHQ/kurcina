@@ -1,7 +1,8 @@
 package me.joeleoli.praxi.match;
 
 import me.joeleoli.fairfight.FairFight;
-import me.joeleoli.nucleus.Nucleus;
+
+import me.joeleoli.nucleus.NucleusAPI;
 import me.joeleoli.nucleus.chat.ChatComponentBuilder;
 import me.joeleoli.nucleus.nametag.NameTagHandler;
 import me.joeleoli.nucleus.util.*;
@@ -10,8 +11,7 @@ import me.joeleoli.praxi.Praxi;
 import me.joeleoli.praxi.ladder.Ladder;
 import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.arena.Arena;
-import me.joeleoli.praxi.player.PlayerData;
-
+import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.ragespigot.RageSpigot;
 
 import lombok.Getter;
@@ -41,7 +41,7 @@ public abstract class Match {
 
     @Getter
     protected static List<Match> matches = new ArrayList<>();
-    protected static final BaseComponent[] HOVER_TEXT = new ChatComponentBuilder(CC.GRAY + "Click to view this player's inventory.").create();
+    protected static final BaseComponent[] HOVER_TEXT = new ChatComponentBuilder(Style.GRAY + "Click to view this player's inventory.").create();
 
     private UUID matchId = UUID.randomUUID();
     @Setter
@@ -186,12 +186,15 @@ public abstract class Match {
             if (this.ladder.isSumo()) {
                 FairFight.getInstance().getPlayerDataManager().getPlayerData(playerA).setAllowTeleport(true);
                 FairFight.getInstance().getPlayerDataManager().getPlayerData(playerB).setAllowTeleport(true);
+
+                playerA.setWalkSpeed(0.0F);
+                playerB.setWalkSpeed(0.0F);
             } else {
-                for (ItemStack itemStack : PlayerData.getByUuid(playerA.getUniqueId()).getKitItems(this.ladder)) {
+                for (ItemStack itemStack : PraxiPlayer.getByUuid(playerA.getUniqueId()).getKitItems(this.ladder)) {
                     playerA.getInventory().addItem(itemStack);
                 }
 
-                for (ItemStack itemStack : PlayerData.getByUuid(playerB.getUniqueId()).getKitItems(this.ladder)) {
+                for (ItemStack itemStack : PraxiPlayer.getByUuid(playerB.getUniqueId()).getKitItems(this.ladder)) {
                     playerB.getInventory().addItem(itemStack);
                 }
             }
@@ -257,8 +260,10 @@ public abstract class Match {
 
                 if (this.ladder.isSumo()) {
                     FairFight.getInstance().getPlayerDataManager().getPlayerData(first).setAllowTeleport(true);
+
+                    first.setWalkSpeed(0.0F);
                 } else {
-                    for (ItemStack itemStack : PlayerData.getByUuid(first.getUniqueId()).getKitItems(this.ladder)) {
+                    for (ItemStack itemStack : PraxiPlayer.getByUuid(first.getUniqueId()).getKitItems(this.ladder)) {
                         first.getInventory().addItem(itemStack);
                     }
                 }
@@ -381,14 +386,14 @@ public abstract class Match {
                     final Player player = matchPlayer.toPlayer();
 
                     if (player != null) {
-                        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+                        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
                         PlayerUtil.spawn(player);
 
-                        playerData.setState(PlayerState.IN_LOBBY);
-                        playerData.setMatch(null);
-                        playerData.setEnderpearlCooldown(null);
-                        playerData.loadLayout();
+                        praxiPlayer.setState(PlayerState.IN_LOBBY);
+                        praxiPlayer.setMatch(null);
+                        praxiPlayer.setEnderpearlCooldown(null);
+                        praxiPlayer.loadLayout();
                         player.setKnockbackProfile(null);
                     }
                 }
@@ -406,14 +411,14 @@ public abstract class Match {
                     final Player player = matchPlayer.toPlayer();
 
                     if (player != null) {
-                        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+                        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
                         PlayerUtil.spawn(player);
 
-                        playerData.setState(PlayerState.IN_LOBBY);
-                        playerData.setMatch(null);
-                        playerData.setEnderpearlCooldown(null);
-                        playerData.loadLayout();
+                        praxiPlayer.setState(PlayerState.IN_LOBBY);
+                        praxiPlayer.setMatch(null);
+                        praxiPlayer.setEnderpearlCooldown(null);
+                        praxiPlayer.loadLayout();
                         player.setKnockbackProfile(null);
                     }
                 }
@@ -462,47 +467,47 @@ public abstract class Match {
         });
 
         for (Player involved : involvedPlayers) {
-            String deadName = CC.RED + deadPlayer.getName();
+            String deadName = Style.RED + deadPlayer.getName();
 
             if (this.isSoloMatch()) {
                 if (deadPlayer.getUniqueId().equals(involved.getUniqueId())) {
-                    deadName = CC.GREEN + deadPlayer.getName();
+                    deadName = Style.GREEN + deadPlayer.getName();
                 }
             } else {
                 final MatchTeam matchTeam = this.getTeam(involved);
 
                 if (matchTeam != null && matchTeam.containsPlayer(deadPlayer)) {
-                    deadName = CC.GREEN + deadPlayer.getName();
+                    deadName = Style.GREEN + deadPlayer.getName();
                 }
             }
 
             if (matchPlayer.isDisconnected()) {
-                involved.sendMessage(deadName + CC.GRAY + " has disconnected.");
+                involved.sendMessage(deadName + Style.GRAY + " has disconnected.");
                 continue;
             }
 
             String killerName = null;
 
             if (killerPlayer != null) {
-                killerName = CC.RED + killerPlayer.getName();
+                killerName = Style.RED + killerPlayer.getName();
 
                 if (this.isSoloMatch()) {
                     if (killerPlayer.getUniqueId().equals(involved.getUniqueId())) {
-                        killerName = CC.GREEN + killerPlayer.getName();
+                        killerName = Style.GREEN + killerPlayer.getName();
                     }
                 } else {
                     final MatchTeam matchTeam = this.getTeam(involved);
 
                     if (matchTeam != null && matchTeam.containsPlayer(killerPlayer)) {
-                        killerName = CC.GREEN + killerPlayer.getName();
+                        killerName = Style.GREEN + killerPlayer.getName();
                     }
                 }
             }
 
             if (killerName == null) {
-                involved.sendMessage(deadName + CC.GRAY + " has died.");
+                involved.sendMessage(deadName + Style.GRAY + " has died.");
             } else {
-                involved.sendMessage(deadName + CC.GRAY + " was killed by " + killerName + CC.GRAY + ".");
+                involved.sendMessage(deadName + Style.GRAY + " was killed by " + killerName + Style.GRAY + ".");
             }
         }
 
@@ -519,7 +524,7 @@ public abstract class Match {
         } else if (this.isEnding()) {
             return "Ending";
         } else {
-            return TimeUtil.formatTime(this.getElapsedDuration());
+            return TimeUtil.millisToTimer(this.getElapsedDuration());
         }
     }
 
@@ -600,33 +605,34 @@ public abstract class Match {
             });
         }
 
-        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-        playerData.setMatch(this);
-        playerData.setState(PlayerState.SPECTATE_MATCH);
-        playerData.loadLayout();
+        praxiPlayer.setMatch(this);
+        praxiPlayer.setState(PlayerState.SPECTATE_MATCH);
+        praxiPlayer.loadLayout();
+
         player.setAllowFlight(true);
         player.setFlying(true);
         player.updateInventory();
         player.teleport(target.getLocation().clone().add(0, 2, 0));
-        player.sendMessage(CC.YELLOW + "You are spectating " + CC.RESET + Nucleus.getColoredName(target) + CC.YELLOW + ".");
+        player.sendMessage(Style.YELLOW + "You are spectating " + Style.PINK + target.getName() + Style.YELLOW + ".");
 
         if (this.isSoloMatch()) {
             for (Player matchPlayer : new Player[]{this.getPlayerA(), this.getPlayerB()}) {
                 if (!player.hasPermission("praxi.spectate.hidden")) {
-                    matchPlayer.sendMessage(Nucleus.getColoredName(player) + CC.YELLOW + " has started spectating your match.");
+                    matchPlayer.sendMessage(Style.PINK + player.getName() + Style.YELLOW + " is now spectating.");
 
                 } else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
-                    matchPlayer.sendMessage(CC.GRAY + "[Silent] " + Nucleus.getColoredName(player) + CC.YELLOW + " has started spectating your match.");
+                    matchPlayer.sendMessage(Style.GRAY + "[Silent] " + Style.PINK + player.getName() + Style.YELLOW + " is now spectating.");
                 }
             }
         } else if (this.isTeamMatch()) {
             for (Player matchPlayer : this.getPlayers()) {
                 if (!player.hasPermission("praxi.spectate.hidden")) {
-                    matchPlayer.sendMessage(Nucleus.getColoredName(player) + CC.YELLOW + " has started spectating your match.");
+                    matchPlayer.sendMessage(Style.PINK + player.getName() + Style.YELLOW + " is now spectating.");
 
                 } else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
-                    matchPlayer.sendMessage(CC.GRAY + "[Silent] " + Nucleus.getColoredName(player) + CC.YELLOW + " has started spectating your match.");
+                    matchPlayer.sendMessage(Style.GRAY + "[Silent] " + Style.PINK + player.getName() + Style.YELLOW + " is now spectating.");
                 }
             }
         }
@@ -650,31 +656,31 @@ public abstract class Match {
             });
         }
 
-        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
         if (this.state != MatchState.ENDING) {
             if (this.isSoloMatch()) {
                 for (Player matchPlayer : new Player[]{this.getPlayerA(), this.getPlayerB()}) {
                     if (!player.hasPermission("praxi.spectate.hidden")) {
-                        matchPlayer.sendMessage(Nucleus.getColoredName(player) + CC.YELLOW + " is no longer spectating your match.");
+                        matchPlayer.sendMessage(NucleusAPI.getColoredName(player) + Style.YELLOW + " is no longer spectating your match.");
                     } else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
-                        matchPlayer.sendMessage(CC.GRAY + "[Silent] " + Nucleus.getColoredName(player) + CC.YELLOW + " is no longer spectating your match.");
+                        matchPlayer.sendMessage(Style.GRAY + "[Silent] " + NucleusAPI.getColoredName(player) + Style.YELLOW + " is no longer spectating your match.");
                     }
                 }
             } else if (this.isTeamMatch()) {
                 for (Player matchPlayer : this.getPlayers()) {
                     if (!player.hasPermission("praxi.spectate.hidden")) {
-                        matchPlayer.sendMessage(Nucleus.getColoredName(player) + CC.YELLOW + " is no longer spectating your match.");
+                        matchPlayer.sendMessage(NucleusAPI.getColoredName(player) + Style.YELLOW + " is no longer spectating your match.");
                     } else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
-                        matchPlayer.sendMessage(CC.GRAY + "[Silent] " + Nucleus.getColoredName(player) + CC.YELLOW + " is no longer spectating your match.");
+                        matchPlayer.sendMessage(Style.GRAY + "[Silent] " + NucleusAPI.getColoredName(player) + Style.YELLOW + " is no longer spectating your match.");
                     }
                 }
             }
         }
 
-        playerData.setState(PlayerState.IN_LOBBY);
-        playerData.setMatch(null);
-        playerData.loadLayout();
+        praxiPlayer.setState(PlayerState.IN_LOBBY);
+        praxiPlayer.setMatch(null);
+        praxiPlayer.loadLayout();
 
         PlayerUtil.spawn(player);
     }

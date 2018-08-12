@@ -4,18 +4,17 @@ import lombok.AllArgsConstructor;
 
 import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.menu.Menu;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.praxi.kit.NamedKit;
 import me.joeleoli.praxi.kit.editor.gui.button.*;
 import me.joeleoli.praxi.ladder.Ladder;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
 
@@ -34,14 +33,14 @@ public class KitManagementMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        return CC.GOLD + "Viewing " + this.ladder.getName() + " kits";
+        return Style.GOLD + "Viewing " + this.ladder.getName() + " kits";
     }
 
     @Override
     public Map<Integer, Button> getButtons(Player player) {
         final Map<Integer, Button> buttons = new HashMap<>();
-        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-        NamedKit[] kits = playerData.getKits(this.ladder);
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+        NamedKit[] kits = praxiPlayer.getKits(this.ladder);
 
         if (kits == null) {
             return buttons;
@@ -67,10 +66,10 @@ public class KitManagementMenu extends Menu {
     @Override
     public void onClose(Player player) {
         if (!this.isClosedByMenu()) {
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            playerData.setState(playerData.getKitEditor().getPreviousState());
-            playerData.getKitEditor().setSelectedLadder(null);
+            praxiPlayer.setState(praxiPlayer.getKitEditor().getPreviousState());
+            praxiPlayer.getKitEditor().setSelectedLadder(null);
         }
     }
 
@@ -82,24 +81,24 @@ public class KitManagementMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.STAINED_CLAY)
-                    .name(CC.RED + CC.BOLD + "Delete")
+                    .name(Style.RED + Style.BOLD + "Delete")
                     .durability(14)
                     .lore(Arrays.asList(
                             "",
-                            CC.RED + "Click to delete this kit.",
-                            CC.RED + "You will " + CC.BOLD + "NOT" + CC.RED + " be able to",
-                            CC.RED + "recover this kit."
+                            Style.RED + "Click to delete this kit.",
+                            Style.RED + "You will " + Style.BOLD + "NOT" + Style.RED + " be able to",
+                            Style.RED + "recover this kit."
                     ))
                     .build();
         }
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarSlot) {
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            playerData.deleteKit(playerData.getKitEditor().getSelectedLadder(), this.kit);
+            praxiPlayer.deleteKit(praxiPlayer.getKitEditor().getSelectedLadder(), this.kit);
 
-            new KitManagementMenu(playerData.getKitEditor().getSelectedLadder()).openMenu(player);
+            new KitManagementMenu(praxiPlayer.getKitEditor().getSelectedLadder()).openMenu(player);
         }
 
     }
@@ -112,21 +111,21 @@ public class KitManagementMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.IRON_SWORD)
-                    .name(CC.GREEN + CC.BOLD + "Create Kit")
+                    .name(Style.GREEN + Style.BOLD + "Create Kit")
                     .build();
         }
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarSlot) {
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-            final Ladder ladder = playerData.getKitEditor().getSelectedLadder();
+            final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+            final Ladder ladder = praxiPlayer.getKitEditor().getSelectedLadder();
             final NamedKit kit = new NamedKit("Kit " + (this.index + 1));
 
             kit.setArmor(ladder.getDefaultKit().getArmor());
             kit.setContents(ladder.getDefaultKit().getContents());
 
-            playerData.replaceKit(ladder, this.index, kit);
-            playerData.getKitEditor().setSelectedKit(kit);
+            praxiPlayer.replaceKit(ladder, this.index, kit);
+            praxiPlayer.getKitEditor().setSelectedKit(kit);
 
             new KitEditorMenu().openMenu(player);
         }
@@ -141,10 +140,10 @@ public class KitManagementMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.SIGN)
-                    .name(CC.YELLOW + CC.BOLD + "Rename")
+                    .name(Style.YELLOW + Style.BOLD + "Rename")
                     .lore(Arrays.asList(
                             "",
-                            CC.YELLOW + "Click to rename this kit."
+                            Style.YELLOW + "Click to rename this kit."
                     ))
                     .build();
         }
@@ -153,13 +152,13 @@ public class KitManagementMenu extends Menu {
         public void clicked(Player player, int slot, ClickType clickType, int hotbarSlot) {
             Menu.currentlyOpenedMenus.get(player.getName()).setClosedByMenu(true);
 
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            playerData.getKitEditor().setActive(true);
-            playerData.getKitEditor().setRename(true);
-            playerData.getKitEditor().setSelectedKit(this.kit);
+            praxiPlayer.getKitEditor().setActive(true);
+            praxiPlayer.getKitEditor().setRename(true);
+            praxiPlayer.getKitEditor().setSelectedKit(this.kit);
             player.closeInventory();
-            player.sendMessage(CC.YELLOW + "Renaming " + CC.BOLD + this.kit.getName() + CC.YELLOW + "... " + CC.GREEN + "Enter the new name now.");
+            player.sendMessage(Style.YELLOW + "Renaming " + Style.BOLD + this.kit.getName() + Style.YELLOW + "... " + Style.GREEN + "Enter the new name now.");
         }
 
     }
@@ -172,28 +171,28 @@ public class KitManagementMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.BOOK)
-                    .name(CC.GREEN + CC.BOLD + "Load/Edit")
+                    .name(Style.GREEN + Style.BOLD + "Load/Edit")
                     .lore(Arrays.asList(
                             "",
-                            CC.YELLOW + "Click to edit this kit."
+                            Style.YELLOW + "Click to edit this kit."
                     ))
                     .build();
         }
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarSlot) {
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-            NamedKit kit = playerData.getKit(playerData.getKitEditor().getSelectedLadder(), this.index);
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+            NamedKit kit = praxiPlayer.getKit(praxiPlayer.getKitEditor().getSelectedLadder(), this.index);
 
             if (kit == null) {
                 kit = new NamedKit("Kit " + (this.index + 1));
-                kit.setArmor(playerData.getKitEditor().getSelectedLadder().getDefaultKit().getArmor());
-                kit.setContents(playerData.getKitEditor().getSelectedLadder().getDefaultKit().getContents());
+                kit.setArmor(praxiPlayer.getKitEditor().getSelectedLadder().getDefaultKit().getArmor());
+                kit.setContents(praxiPlayer.getKitEditor().getSelectedLadder().getDefaultKit().getContents());
 
-                playerData.replaceKit(playerData.getKitEditor().getSelectedLadder(), this.index, kit);
+                praxiPlayer.replaceKit(praxiPlayer.getKitEditor().getSelectedLadder(), this.index, kit);
             }
 
-            playerData.getKitEditor().setSelectedKit(kit);
+            praxiPlayer.getKitEditor().setSelectedKit(kit);
 
             new KitEditorMenu().openMenu(player);
         }
@@ -208,7 +207,7 @@ public class KitManagementMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.BOOK)
-                    .name(CC.GREEN + CC.BOLD + this.kit.getName())
+                    .name(Style.GREEN + Style.BOLD + this.kit.getName())
                     .build();
         }
 

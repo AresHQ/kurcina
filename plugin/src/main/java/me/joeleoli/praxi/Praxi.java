@@ -11,7 +11,7 @@ import me.joeleoli.nucleus.config.ConfigCursor;
 import me.joeleoli.nucleus.config.FileConfig;
 import me.joeleoli.nucleus.listener.ListenerHandler;
 import me.joeleoli.nucleus.player.PlayerSettings;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.InventoryUtil;
 import me.joeleoli.nucleus.util.LocationUtil;
 
@@ -25,11 +25,11 @@ import me.joeleoli.praxi.command.param.ArenaTypeParameterType;
 import me.joeleoli.praxi.command.param.LadderParameterType;
 import me.joeleoli.praxi.command.param.QueueParameterType;
 import me.joeleoli.praxi.config.ConfigItem;
-import me.joeleoli.praxi.event.EventManager;
+import me.joeleoli.praxi.events.EventManager;
 import me.joeleoli.praxi.kit.Kit;
 import me.joeleoli.praxi.ladder.Ladder;
-import me.joeleoli.praxi.listener.PlayerMovementHandler;
-import me.joeleoli.praxi.mongo.PracticeMongo;
+import me.joeleoli.praxi.handler.PlayerMovementHandler;
+import me.joeleoli.praxi.mongo.PraxiMongo;
 import me.joeleoli.praxi.player.PlayerHotbar;
 import me.joeleoli.praxi.player.PracticeSetting;
 import me.joeleoli.praxi.queue.Queue;
@@ -49,44 +49,40 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 
 import java.util.Iterator;
-import java.util.Random;
 
 @Getter
 public class Praxi extends PraxiProvider {
 
     @Getter
     private static Praxi instance;
-    public static Random RANDOM = new Random();
     public static JsonParser PARSER = new JsonParser();
 
-    private long startup = System.currentTimeMillis();
     private FileConfig mainConfig, arenaConfig, ladderConfig;
+
+    private PraxiMongo praxiMongo;
     private EventManager eventManager;
+
+    private long startup = System.currentTimeMillis();
 
     @Override
     public void onEnable() {
-        // Set instance
         instance = this;
 
-        // Load configs
         this.mainConfig = new FileConfig(this, "config.yml");
         this.arenaConfig = new FileConfig(this, "arenas.yml");
         this.ladderConfig = new FileConfig(this, "ladders.yml");
 
-        // Load managers
+        this.praxiMongo = new PraxiMongo();
         this.eventManager = new EventManager();
         this.eventManager.load();
 
-        // Load modules
         this.loadLadders();
         this.loadArenas();
         this.loadQueues();
+
         PlayerHotbar.init();
 
         Nucleus.getInstance().setBoardManager(new BoardManager(this, new PracticeBoardAdapter()));
-
-        // Load database
-        new PracticeMongo();
 
         CommandHandler.registerParameterType(Arena.class, new ArenaParameterType());
         CommandHandler.registerParameterType(ArenaType.class, new ArenaTypeParameterType());
@@ -95,7 +91,6 @@ public class Praxi extends PraxiProvider {
         CommandHandler.loadCommandsFromPackage(this, "me.joeleoli.praxi.command");
         ListenerHandler.loadListenersFromPackage(this, "me.joeleoli.praxi.listener");
 
-        // Register default player settings
         PlayerSettings.registerDefault(PracticeSetting.RECEIVE_DUEL_REQUESTS, true);
         PlayerSettings.registerDefault(PracticeSetting.SHOW_SCOREBOARD, true);
         PlayerSettings.registerDefault(PracticeSetting.ALLOW_SPECTATORS, true);
@@ -137,7 +132,7 @@ public class Praxi extends PraxiProvider {
 
             Ladder ladder = new Ladder(key);
 
-            ladder.setDisplayName(CC.translate(cursor.getString("display-name")));
+            ladder.setDisplayName(Style.translate(cursor.getString("display-name")));
             ladder.setDisplayIcon(new ConfigItem(cursor, "display-icon").toItemStack());
             ladder.setEnabled(cursor.getBoolean("enabled"));
             ladder.setBuild(cursor.getBoolean("build"));

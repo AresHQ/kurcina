@@ -1,6 +1,6 @@
 package me.joeleoli.praxi.queue;
 
-import me.joeleoli.nucleus.Nucleus;
+import me.joeleoli.nucleus.NucleusAPI;
 import me.joeleoli.nucleus.util.TaskUtil;
 
 import me.joeleoli.praxi.arena.Arena;
@@ -8,7 +8,7 @@ import me.joeleoli.praxi.match.MatchPlayer;
 import me.joeleoli.praxi.match.impl.SoloMatch;
 import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.match.Match;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.praxi.player.PracticeSetting;
 
 import org.bukkit.Bukkit;
@@ -34,7 +34,7 @@ public class QueueThread extends Thread {
                             continue;
                         }
 
-                        final PlayerData firstPlayerData = PlayerData.getByUuid(firstQueuePlayer.getPlayerUuid());
+                        final PraxiPlayer firstPraxiPlayer = PraxiPlayer.getByUuid(firstQueuePlayer.getPlayerUuid());
 
                         for (QueuePlayer secondQueuePlayer : queue.getPlayers()) {
                             if (firstQueuePlayer.equals(secondQueuePlayer)) {
@@ -42,13 +42,13 @@ public class QueueThread extends Thread {
                             }
 
                             final Player secondPlayer = Bukkit.getPlayer(secondQueuePlayer.getPlayerUuid());
-                            final PlayerData secondPlayerData = PlayerData.getByUuid(secondQueuePlayer.getPlayerUuid());
+                            final PraxiPlayer secondPraxiPlayer = PraxiPlayer.getByUuid(secondQueuePlayer.getPlayerUuid());
 
                             if (secondPlayer == null) {
                                 continue;
                             }
 
-                            if (Nucleus.<Boolean>getSetting(firstPlayer, PracticeSetting.PING_FACTOR) || Nucleus.<Boolean>getSetting(secondPlayer, PracticeSetting.PING_FACTOR)) {
+                            if (NucleusAPI.<Boolean>getSetting(firstPlayer, PracticeSetting.PING_FACTOR) || NucleusAPI.<Boolean>getSetting(secondPlayer, PracticeSetting.PING_FACTOR)) {
                                 if (firstPlayer.getPing() >= secondPlayer.getPing()) {
                                     if (firstPlayer.getPing() - secondPlayer.getPing() >= 50) {
                                         continue;
@@ -84,21 +84,21 @@ public class QueueThread extends Thread {
                             final MatchPlayer secondMatchPlayer = new MatchPlayer(secondPlayer);
 
                             if (queue.isRanked()) {
-                                firstMatchPlayer.setElo(firstPlayerData.getStatistics().getElo(queue.getLadder()));
-                                secondMatchPlayer.setElo(secondPlayerData.getStatistics().getElo(queue.getLadder()));
+                                firstMatchPlayer.setElo(firstPraxiPlayer.getStatistics().getElo(queue.getLadder()));
+                                secondMatchPlayer.setElo(secondPraxiPlayer.getStatistics().getElo(queue.getLadder()));
                             }
 
                             // Create match
                             final Match match = new SoloMatch(queue.getUuid(), firstMatchPlayer, secondMatchPlayer, queue.getLadder(), arena, queue.isRanked());
 
                             // Update player's states
-                            firstPlayerData.setState(PlayerState.IN_MATCH);
-                            firstPlayerData.setQueuePlayer(null);
-                            firstPlayerData.setMatch(match);
+                            firstPraxiPlayer.setState(PlayerState.IN_MATCH);
+                            firstPraxiPlayer.setQueuePlayer(null);
+                            firstPraxiPlayer.setMatch(match);
 
-                            secondPlayerData.setState(PlayerState.IN_MATCH);
-                            secondPlayerData.setQueuePlayer(null);
-                            secondPlayerData.setMatch(match);
+                            secondPraxiPlayer.setState(PlayerState.IN_MATCH);
+                            secondPraxiPlayer.setQueuePlayer(null);
+                            secondPraxiPlayer.setMatch(match);
 
                             TaskUtil.run(match::handleStart);
                         }

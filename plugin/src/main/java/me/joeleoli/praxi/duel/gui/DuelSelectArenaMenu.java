@@ -4,12 +4,12 @@ import lombok.AllArgsConstructor;
 
 import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.menu.Menu;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.ItemBuilder;
 
 import me.joeleoli.praxi.arena.Arena;
 import me.joeleoli.praxi.arena.ArenaType;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -23,12 +23,12 @@ public class DuelSelectArenaMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        return CC.BLUE + CC.BOLD + "Select an arena...";
+        return Style.BLUE + Style.BOLD + "Select an arena...";
     }
 
     @Override
     public Map<Integer, Button> getButtons(Player player) {
-        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
         Map<Integer, Button> buttons = new HashMap<>();
 
@@ -37,19 +37,19 @@ public class DuelSelectArenaMenu extends Menu {
                 continue;
             }
 
-            if (!arena.getLadders().contains(playerData.getDuelProcedure().getLadder().getName())) {
+            if (!arena.getLadders().contains(praxiPlayer.getDuelProcedure().getLadder().getName())) {
                 continue;
             }
 
-            if (playerData.getDuelProcedure().getLadder().isBuild() && arena.getType() == ArenaType.SHARED) {
+            if (praxiPlayer.getDuelProcedure().getLadder().isBuild() && arena.getType() == ArenaType.SHARED) {
                 continue;
             }
 
-            if (playerData.getDuelProcedure().getLadder().isBuild() && arena.getType() != ArenaType.STANDALONE) {
+            if (praxiPlayer.getDuelProcedure().getLadder().isBuild() && arena.getType() != ArenaType.STANDALONE) {
                 continue;
             }
 
-            if (playerData.getDuelProcedure().getLadder().isBuild() && arena.isActive()) {
+            if (praxiPlayer.getDuelProcedure().getLadder().isBuild() && arena.isActive()) {
                 continue;
             }
 
@@ -62,9 +62,9 @@ public class DuelSelectArenaMenu extends Menu {
     @Override
     public void onClose(Player player) {
         if (!this.isClosedByMenu()) {
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            playerData.setDuelProcedure(null);
+            praxiPlayer.setDuelProcedure(null);
         }
     }
 
@@ -75,16 +75,16 @@ public class DuelSelectArenaMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            return new ItemBuilder(Material.PAPER).name(CC.GREEN + CC.BOLD + this.arena.getName()).build();
+            return new ItemBuilder(Material.PAPER).name(Style.GREEN + Style.BOLD + this.arena.getName()).build();
         }
 
         @Override
         public void clicked(Player player, int i, ClickType clickType, int hb) {
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
             // Update and send the procedure
-            playerData.getDuelProcedure().setArena(this.arena);
-            playerData.getDuelProcedure().send();
+            praxiPlayer.getDuelProcedure().setArena(this.arena);
+            praxiPlayer.getDuelProcedure().send();
 
             // Set closed by menu
             Menu.currentlyOpenedMenus.get(player.getName()).setClosedByMenu(true);

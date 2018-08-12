@@ -4,11 +4,12 @@ import lombok.AllArgsConstructor;
 
 import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.menu.Menu;
-import me.joeleoli.nucleus.player.PlayerData;
+import me.joeleoli.nucleus.player.NucleusPlayer;
 import me.joeleoli.nucleus.player.Setting;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.nucleus.util.TextSplitter;
+
 import me.joeleoli.praxi.player.PracticeSetting;
 
 import org.bukkit.Material;
@@ -25,7 +26,7 @@ public class PlayerSettingsMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        return CC.PINK + CC.BOLD + "Your Settings";
+        return Style.PINK + Style.BOLD + "Your Settings";
     }
 
     @Override
@@ -43,7 +44,7 @@ public class PlayerSettingsMenu extends Menu {
     private enum SettingInfo {
         SCOREBOARD(
                 PracticeSetting.SHOW_SCOREBOARD,
-                CC.PINK + CC.BOLD + "Scoreboard",
+                Style.PINK + Style.BOLD + "Scoreboard",
                 "If enabled, information will be displayed on your side scoreboard.",
                 Material.ITEM_FRAME,
                 "Show your scoreboard",
@@ -51,7 +52,7 @@ public class PlayerSettingsMenu extends Menu {
         ),
         SPECTATORS(
                 PracticeSetting.ALLOW_SPECTATORS,
-                CC.AQUA + CC.BOLD + "Spectators",
+                Style.AQUA + Style.BOLD + "Spectators",
                 "If enabled, players can spectate your match with /spectate.",
                 Material.REDSTONE_TORCH_ON,
                 "Let players spectate your matches",
@@ -59,7 +60,7 @@ public class PlayerSettingsMenu extends Menu {
         ),
         DUEL_REQUESTS(
                 PracticeSetting.RECEIVE_DUEL_REQUESTS,
-                CC.RED + CC.BOLD + "Duel Requests",
+                Style.RED + Style.BOLD + "Duel Requests",
                 "If enabled, players can send you duel requests.",
                 Material.BLAZE_ROD,
                 "Let players send you duel requests",
@@ -67,7 +68,7 @@ public class PlayerSettingsMenu extends Menu {
         ),
         GLOBAL_MESSAGES(
                 Setting.GlobalSetting.RECEIVE_GLOBAL_MESSAGES,
-                CC.GREEN + CC.BOLD + "Global Messages",
+                Style.GREEN + Style.BOLD + "Global Messages",
                 "If enabled, you will receive global chat messages.",
                 Material.BOOK_AND_QUILL,
                 "Receive global chat messages",
@@ -75,7 +76,7 @@ public class PlayerSettingsMenu extends Menu {
         ),
         PRIVATE_MESSAGES(
                 Setting.GlobalSetting.RECEIVE_PRIVATE_MESSAGES,
-                CC.BLUE + CC.BOLD + "Private Messages",
+                Style.BLUE + Style.BOLD + "Private Messages",
                 "If enabled, you will receive private chat messages.",
                 Material.NAME_TAG,
                 "Receive private chat messages",
@@ -83,7 +84,7 @@ public class PlayerSettingsMenu extends Menu {
         ),
         MESSAGE_SOUNDS(
                 Setting.GlobalSetting.PLAY_MESSAGE_SOUNDS,
-                CC.YELLOW + CC.BOLD + "Message Sounds",
+                Style.YELLOW + Style.BOLD + "Message Sounds",
                 "If enabled, you will be notified via sound when you receive private messages.",
                 Material.RECORD_7,
                 "Play message sounds",
@@ -91,7 +92,7 @@ public class PlayerSettingsMenu extends Menu {
         ),
         PING_FACTOR(
                 PracticeSetting.PING_FACTOR,
-                CC.DARK_PURPLE + CC.BOLD + "Ping Factor",
+                Style.DARK_PURPLE + Style.BOLD + "Ping Factor",
                 "If enabled, you will only be matched against players that have a similar ping to you.",
                 Material.EYE_OF_ENDER,
                 "Be matched against players with similar ping",
@@ -106,15 +107,13 @@ public class PlayerSettingsMenu extends Menu {
         private String disabledDescription;
 
         public void toggle(Player player) {
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-
-            playerData.getSettings().getSettings().put(this.setting, !this.get(player));
+            final NucleusPlayer nucleusPlayer = NucleusPlayer.getByUuid(player.getUniqueId());
+            nucleusPlayer.getSettings().getSettings().put(this.setting, !this.get(player));
         }
 
         public boolean get(Player player) {
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-
-            return playerData.getSettings().getBoolean(this.setting);
+            final NucleusPlayer nucleusPlayer = NucleusPlayer.getByUuid(player.getUniqueId());
+            return nucleusPlayer.getSettings().getBoolean(this.setting);
         }
     }
 
@@ -128,10 +127,10 @@ public class PlayerSettingsMenu extends Menu {
             final List<String> lore = new ArrayList<>();
 
             lore.add("");
-            lore.addAll(TextSplitter.split(this.settingInfo.description, CC.BLUE));
+            lore.addAll(TextSplitter.split(this.settingInfo.description, Style.BLUE));
             lore.add("");
-            lore.add(" " + (this.settingInfo.get(player) ? CC.BLUE + CC.ARROW_RIGHT : " ") + " " + CC.YELLOW + this.settingInfo.enabledDescription);
-            lore.add(" " + (!this.settingInfo.get(player) ? CC.BLUE + CC.ARROW_RIGHT : " ") + " " + CC.YELLOW + this.settingInfo.disabledDescription);
+            lore.add(" " + (this.settingInfo.get(player) ? Style.BLUE + Style.UNICODE_ARROWS_RIGHT : " ") + " " + Style.YELLOW + this.settingInfo.enabledDescription);
+            lore.add(" " + (!this.settingInfo.get(player) ? Style.BLUE + Style.UNICODE_ARROWS_LEFT : " ") + " " + Style.YELLOW + this.settingInfo.disabledDescription);
 
             return new ItemBuilder(this.settingInfo.material)
                     .name(this.settingInfo.title)

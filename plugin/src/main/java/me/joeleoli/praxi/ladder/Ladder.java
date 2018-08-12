@@ -1,7 +1,7 @@
 package me.joeleoli.praxi.ladder;
 
 import me.joeleoli.nucleus.config.ConfigCursor;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.InventoryUtil;
 
 import me.joeleoli.praxi.Praxi;

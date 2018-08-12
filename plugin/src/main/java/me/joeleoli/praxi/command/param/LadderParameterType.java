@@ -1,7 +1,7 @@
 package me.joeleoli.praxi.command.param;
 
 import me.joeleoli.nucleus.command.param.ParameterType;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 
 import me.joeleoli.praxi.ladder.Ladder;
 
@@ -18,7 +18,7 @@ public class LadderParameterType implements ParameterType<Ladder> {
         Ladder ladder = Ladder.getByName(source);
 
         if (ladder == null) {
-            sender.sendMessage(CC.RED + "That is not a valid ladder type.");
+            sender.sendMessage(Style.RED + "That is not a valid ladder type.");
             return null;
         }
 

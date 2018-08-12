@@ -3,7 +3,7 @@ package me.joeleoli.praxi.command;
 import me.joeleoli.nucleus.command.Command;
 import me.joeleoli.nucleus.command.CommandHelp;
 import me.joeleoli.nucleus.command.param.Parameter;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.TaskUtil;
 import me.joeleoli.praxi.Praxi;
 import me.joeleoli.praxi.arena.Arena;
@@ -35,34 +35,34 @@ public class ArenaCommands {
     @Command(names = {"arena", "arena help"}, permissionNode = "praxi.arena")
     public static void help(Player player) {
         for (CommandHelp help : HELP) {
-            player.sendMessage(CC.YELLOW + help.getSyntax() + CC.AQUA + " - " + CC.PINK + help.getDescription());
+            player.sendMessage(Style.YELLOW + help.getSyntax() + Style.AQUA + " - " + Style.PINK + help.getDescription());
         }
     }
 
     @Command(names = "arena wand", permissionNode = "praxi.arena")
     public static void wand(Player player) {
         player.getInventory().addItem(Selection.SELECTION_WAND);
-        player.sendMessage(CC.YELLOW + "You have been given the selection wand.");
+        player.sendMessage(Style.YELLOW + "You have been given the selection wand.");
     }
 
     @Command(names = "arena save", permissionNode = "praxi.arena")
     public static void save(CommandSender sender) {
         Arena.getArenas().forEach(Arena::save);
-        sender.sendMessage(CC.GREEN + "Saved all arenas.");
+        sender.sendMessage(Style.GREEN + "Saved all arenas.");
     }
 
     @Command(names = "arena list", permissionNode = "praxi.arena")
     public static void list(Player player) {
-        player.sendMessage(CC.GOLD + "Arenas:");
+        player.sendMessage(Style.GOLD + "Arenas:");
 
         if (Arena.getArenas().isEmpty()) {
-            player.sendMessage(CC.GRAY + "There are no arenas.");
+            player.sendMessage(Style.GRAY + "There are no arenas.");
             return;
         }
 
         for (Arena arena : Arena.getArenas()) {
             if (arena.getType() != ArenaType.DUPLICATE) {
-                player.sendMessage(CC.GRAY + " - " + (arena.isSetup() ? CC.GREEN : CC.RED) + arena.getName() + CC.GRAY + " (" + arena.getType().name() + ")");
+                player.sendMessage(Style.GRAY + " - " + (arena.isSetup() ? Style.GREEN : Style.RED) + arena.getName() + Style.GRAY + " (" + arena.getType().name() + ")");
             }
         }
     }
@@ -72,14 +72,14 @@ public class ArenaCommands {
         Arena arena = Arena.getByName(name);
 
         if (arena != null) {
-            player.sendMessage(CC.RED + "An arena with that name already exists.");
+            player.sendMessage(Style.RED + "An arena with that name already exists.");
             return;
         }
 
         Selection selection = Selection.createOrGetSelection(player);
 
         if (!selection.isFullObject()) {
-            player.sendMessage(CC.RED + "You must have a full selection to create an arena.");
+            player.sendMessage(Style.RED + "You must have a full selection to create an arena.");
             return;
         }
 
@@ -93,7 +93,7 @@ public class ArenaCommands {
 
         Arena.getArenas().add(arena);
 
-        player.sendMessage(CC.GREEN + "Arena `" + arena.getName() + "` has been created.");
+        player.sendMessage(Style.GREEN + "Arena `" + arena.getName() + "` has been created.");
     }
 
     @Command(names = "arena delete", permissionNode = "praxi.arena")
@@ -106,7 +106,7 @@ public class ArenaCommands {
             Arena.getArenas().removeAll(((StandaloneArena) arena).getDuplicates());
         }
 
-        player.sendMessage(CC.GREEN + "Arena `" + arena.getName() + "` has been deleted.");
+        player.sendMessage(Style.GREEN + "Arena `" + arena.getName() + "` has been deleted.");
     }
 
     @Command(names = "arena setspawn", permissionNode = "praxi.arena")
@@ -116,13 +116,13 @@ public class ArenaCommands {
         } else if (loc == 2) {
             arena.setSpawn2(player.getLocation());
         } else {
-            player.sendMessage(CC.RED + "Choose position `1` or position `2`.");
+            player.sendMessage(Style.RED + "Choose position `1` or position `2`.");
             return;
         }
 
         arena.save();
 
-        player.sendMessage(CC.GREEN + "You set the spawn position " + loc + (loc == 1 ? "st" : "nd") + " for `" + arena.getName() + "`.");
+        player.sendMessage(Style.GREEN + "You set the spawn position " + loc + (loc == 1 ? "st" : "nd") + " for `" + arena.getName() + "`.");
     }
 
     @Command(names = "arena generate", permissionNode = "praxi.arena.generate", async = true)
@@ -130,7 +130,7 @@ public class ArenaCommands {
         File schematicsFolder = new File(Praxi.getInstance().getDataFolder().getPath() + File.separator + "schematics");
 
         if (!schematicsFolder.exists()) {
-            player.sendMessage(CC.RED + "The schematics folder does not exist.");
+            player.sendMessage(Style.RED + "The schematics folder does not exist.");
             return;
         }
 
@@ -162,7 +162,7 @@ public class ArenaCommands {
             }
         }
 
-        player.sendMessage(CC.GREEN + "Generating arenas... See console for details.");
+        player.sendMessage(Style.GREEN + "Generating arenas... See console for details.");
     }
 
     @Command(names = "arena tp", permissionNode = "praxi.arena")
@@ -175,7 +175,7 @@ public class ArenaCommands {
             player.teleport(arena.getUpperCorner());
         }
 
-        player.sendMessage(CC.GREEN + "You teleported to " + CC.AQUA + arena.getName() + CC.GREEN + ".");
+        player.sendMessage(Style.GREEN + "You teleported to " + Style.AQUA + arena.getName() + Style.GREEN + ".");
     }
 
     @Command(names = "arena genhelper", permissionNode = "praxi.arena.genhelp")
@@ -193,7 +193,7 @@ public class ArenaCommands {
             sign.setLine(1, ((int) player.getLocation().getYaw()) + "");
             sign.update();
 
-            player.sendMessage(CC.GREEN + "Generator helper placed.");
+            player.sendMessage(Style.GREEN + "Generator helper placed.");
         }
     }
 

@@ -4,10 +4,10 @@ import lombok.AllArgsConstructor;
 
 import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.menu.Menu;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.praxi.ladder.Ladder;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -19,7 +19,7 @@ public class DuelSelectLadderMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        return CC.GOLD + CC.BOLD + "Select a ladder...";
+        return Style.GOLD + Style.BOLD + "Select a ladder...";
     }
 
     @Override
@@ -38,9 +38,9 @@ public class DuelSelectLadderMenu extends Menu {
     @Override
     public void onClose(Player player) {
         if (!this.isClosedByMenu()) {
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            playerData.setDuelProcedure(null);
+            praxiPlayer.setDuelProcedure(null);
         }
     }
 
@@ -52,20 +52,20 @@ public class DuelSelectLadderMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(this.ladder.getDisplayIcon())
-                    .name(this.ladder.getDisplayName())
+                    .name(Style.SECONDARY + Style.BOLD + this.ladder.getName())
                     .lore(Arrays.asList(
                             "",
-                            CC.YELLOW + "Click here to select " + CC.BOLD + this.ladder.getDisplayName() + CC.YELLOW + "."
+                            Style.PRIMARY + "Click here to select " + Style.SECONDARY + Style.BOLD + this.ladder.getName() + Style.PRIMARY + "."
                     ))
                     .build();
         }
 
         @Override
         public void clicked(Player player, int i, ClickType clickType, int hb) {
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
             // Update duel procedure
-            playerData.getDuelProcedure().setLadder(this.ladder);
+            praxiPlayer.getDuelProcedure().setLadder(this.ladder);
 
             // Set closed by menu
             Menu.currentlyOpenedMenus.get(player.getName()).setClosedByMenu(true);

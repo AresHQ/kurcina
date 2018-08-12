@@ -25,7 +25,7 @@ public class ViewInventoryMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        return CC.GOLD + this.target.getName() + "'s Inventory";
+        return Style.GOLD + this.target.getName() + "'s Inventory";
     }
 
     @Override
@@ -107,12 +107,12 @@ public class ViewInventoryMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ItemBuilder builder = new ItemBuilder(Material.POTION).name(CC.GREEN + "Potion Effects");
+            final ItemBuilder builder = new ItemBuilder(Material.POTION).name(Style.GREEN + "Potion Effects");
 
             if (this.effects.isEmpty()) {
                 builder.lore(Arrays.asList(
                         "",
-                        CC.GRAY + "No effects"
+                        Style.GRAY + "No effects"
                 ));
             } else {
                 final List<String> lore = new ArrayList<>();
@@ -121,9 +121,9 @@ public class ViewInventoryMenu extends Menu {
 
                 this.effects.forEach(effect -> {
                     final String name = BukkitUtil.getName(effect.getType()) + " " + (effect.getAmplifier() + 1);
-                    final String duration = CC.GRAY + " (" + TimeUtil.formatTime((effect.getDuration() / 20) * 1000) + ")";
+                    final String duration = Style.GRAY + " (" + TimeUtil.millisToTimer((effect.getDuration() / 20) * 1000) + ")";
 
-                    lore.add(CC.AQUA + name + duration);
+                    lore.add(Style.AQUA + name + duration);
                 });
 
                 builder.lore(lore);

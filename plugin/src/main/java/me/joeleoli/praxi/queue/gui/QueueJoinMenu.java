@@ -1,13 +1,13 @@
 package me.joeleoli.praxi.queue.gui;
 
-import me.joeleoli.nucleus.Nucleus;
+import me.joeleoli.nucleus.NucleusAPI;
 import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.menu.Menu;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.ItemBuilder;
 
 import me.joeleoli.praxi.Praxi;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.queue.Queue;
 
@@ -26,7 +26,7 @@ public class QueueJoinMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        return CC.GOLD + "Join " + (this.ranked ? "Ranked" : "Unranked") + " Queue";
+        return Style.GOLD + "Join " + (this.ranked ? "Ranked" : "Unranked") + " Queue";
     }
 
     @Override
@@ -79,43 +79,43 @@ public class QueueJoinMenu extends Menu {
                 }
             }
 
-            lore.add(CC.DARK_PURPLE + CC.BOLD + "Ranked");
-            lore.add(" " + CC.GREEN + "In fights: " + CC.RESET + rankedFighting);
-            lore.add(" " + CC.GREEN + "In queue: " + CC.RESET + rankedQueueing);
+            lore.add(Style.SECONDARY + Style.UNDER_LINE + "Ranked");
+            lore.add(" " + Style.PRIMARY + "In fights: " + Style.RESET + rankedFighting);
+            lore.add(" " + Style.PRIMARY + "In queue: " + Style.RESET + rankedQueueing);
             lore.add("");
-            lore.add(CC.DARK_PURPLE + CC.BOLD + "Unranked");
-            lore.add(" " + CC.GREEN + "In fights: " + CC.RESET + unrankedFighting);
-            lore.add(" " + CC.GREEN + "In queue: " + CC.RESET + unrankedQueueing);
+            lore.add(Style.SECONDARY + Style.UNDER_LINE + "Unranked");
+            lore.add(" " + Style.PRIMARY + "In fights: " + Style.RESET + unrankedFighting);
+            lore.add(" " + Style.PRIMARY + "In queue: " + Style.RESET + unrankedQueueing);
             lore.add("");
 
-            lore.add(CC.YELLOW + "Click here to select " + CC.BOLD + this.queue.getLadder().getDisplayName() + CC.YELLOW + ".");
+            lore.add(Style.PRIMARY + "Click here to select " + Style.SECONDARY + Style.BOLD + this.queue.getLadder().getName() + Style.PRIMARY + ".");
 
             return new ItemBuilder(this.queue.getLadder().getDisplayIcon())
-                    .name(this.queue.getLadder().getDisplayName()).lore(lore)
+                    .name(Style.SECONDARY + Style.BOLD + this.queue.getLadder().getName()).lore(lore)
                     .build();
         }
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            if (playerData == null) {
+            if (praxiPlayer == null) {
                 return;
             }
 
-            if (playerData.getState() != PlayerState.IN_LOBBY) {
-                player.sendMessage(CC.RED + "You must be in the lobby to join a queue.");
+            if (praxiPlayer.getState() != PlayerState.IN_LOBBY) {
+                player.sendMessage(Style.RED + "You must be in the lobby to join a queue.");
                 return;
             }
 
-            if (Nucleus.isFrozen(player)) {
-                player.sendMessage(CC.RED + "You cannot queue while frozen.");
+            if (NucleusAPI.isFrozen(player)) {
+                player.sendMessage(Style.RED + "You cannot queue while frozen.");
                 return;
             }
 
             player.closeInventory();
 
-            this.queue.addPlayer(player, !this.queue.isRanked() ? 0 : playerData.getStatistics().getElo(this.queue.getLadder()));
+            this.queue.addPlayer(player, !this.queue.isRanked() ? 0 : praxiPlayer.getStatistics().getElo(this.queue.getLadder()));
         }
 
     }

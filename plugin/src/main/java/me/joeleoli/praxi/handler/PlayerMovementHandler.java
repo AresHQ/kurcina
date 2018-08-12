@@ -1,10 +1,8 @@
-package me.joeleoli.praxi.listener;
-
-import me.joeleoli.nucleus.Nucleus;
+package me.joeleoli.praxi.handler;
 
 import me.joeleoli.praxi.match.Match;
 import me.joeleoli.praxi.match.MatchState;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 
 import me.joeleoli.ragespigot.handler.MovementHandler;
 
@@ -18,21 +16,11 @@ public class PlayerMovementHandler implements MovementHandler {
 
     @Override
     public void handleUpdateLocation(Player player, Location from, Location to, PacketPlayInFlying packetPlayInFlying) {
-        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-        if (Nucleus.isFrozen(player)) {
-            final Location teleportTo = from.clone();
-
-            teleportTo.setY(to.getY());
-            teleportTo.setYaw(to.getYaw());
-            teleportTo.setPitch(to.getPitch());
-            player.teleport(teleportTo);
-            return;
-        }
-
-        if (playerData.isInMatch()) {
-            if (playerData.getMatch().getLadder().isSumo() || playerData.getMatch().getLadder().isSpleef()) {
-                final Match match = playerData.getMatch();
+        if (praxiPlayer.isInMatch()) {
+            if (praxiPlayer.getMatch().getLadder().isSumo() || praxiPlayer.getMatch().getLadder().isSpleef()) {
+                final Match match = praxiPlayer.getMatch();
 
                 if (match.isFighting()) {
                     if (player.getLocation().getBlock().getType() == Material.WATER || player.getLocation().getBlock().getType() == Material.STATIONARY_WATER) {
@@ -40,13 +28,13 @@ public class PlayerMovementHandler implements MovementHandler {
 
                         if (killer == null) {
                             if (match.isSoloMatch()) {
-                                killer = playerData.getMatch().getOpponentPlayer(player);
+                                killer = praxiPlayer.getMatch().getOpponentPlayer(player);
                             }
                         }
 
                         match.handleDeath(player, killer, false);
                     }
-                } else if (playerData.getMatch().getState() == MatchState.STARTING) {
+                } else if (praxiPlayer.getMatch().getState() == MatchState.STARTING) {
                     Location teleportTo = null;
 
                     if (match.isSoloMatch()) {

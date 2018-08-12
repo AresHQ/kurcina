@@ -1,14 +1,18 @@
 package me.joeleoli.praxi.listener;
 
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
+import me.joeleoli.praxi.arena.Arena;
+import me.joeleoli.praxi.arena.ArenaType;
 import me.joeleoli.praxi.arena.selection.Selection;
 
+import me.joeleoli.praxi.match.Match;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 
@@ -44,17 +48,55 @@ public class ArenaListener implements Listener {
         event.setUseItemInHand(Event.Result.DENY);
         event.setUseInteractedBlock(Event.Result.DENY);
 
-        String message = CC.AQUA + (location == 1 ? "First" : "Second") +
-                " location " + CC.YELLOW + "(" + CC.GREEN +
-                clicked.getX() + CC.YELLOW + ", " + CC.GREEN +
-                clicked.getY() + CC.YELLOW + ", " + CC.GREEN +
-                clicked.getZ() + CC.YELLOW + ")" + CC.AQUA + " has been set!";
+        String message = Style.AQUA + (location == 1 ? "First" : "Second") +
+                " location " + Style.YELLOW + "(" + Style.GREEN +
+                clicked.getX() + Style.YELLOW + ", " + Style.GREEN +
+                clicked.getY() + Style.YELLOW + ", " + Style.GREEN +
+                clicked.getZ() + Style.YELLOW + ")" + Style.AQUA + " has been set!";
 
         if (selection.isFullObject()) {
-            message += CC.RED + " (" + CC.YELLOW + selection.getCuboid().volume() + CC.AQUA + " blocks" + CC.RED + ")";
+            message += Style.RED + " (" + Style.YELLOW + selection.getCuboid().volume() + Style.AQUA + " blocks" + Style.RED + ")";
         }
 
         player.sendMessage(message);
+    }
+
+    @EventHandler
+    public void onBlockFromTo(BlockFromToEvent event) {
+        final int x = event.getBlock().getX();
+        final int y = event.getBlock().getY();
+        final int z = event.getBlock().getZ();
+
+        Arena foundArena = null;
+
+        for (Arena arena : Arena.getArenas()) {
+            if (!(arena.getType() == ArenaType.STANDALONE || arena.getType() == ArenaType.DUPLICATE)) {
+                continue;
+            }
+
+            if (!arena.isActive()) {
+                continue;
+            }
+
+            if (x >= arena.getX1() && x <= arena.getX2() && y >= arena.getY1() && y <= arena.getY2() && z >= arena.getZ1() && z <= arena.getZ2()) {
+                foundArena = arena;
+                break;
+            }
+        }
+
+        if (foundArena == null) {
+            return;
+        }
+
+        for (Match match : Match.getMatches()) {
+            if (match.getArena().equals(foundArena)) {
+                if (match.isFighting()) {
+                    match.getPlacedBlocks().add(event.getToBlock().getLocation());
+                }
+
+                break;
+            }
+        }
     }
 
 }

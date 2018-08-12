@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 
 import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.team.TeamPlayer;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.praxi.party.Party;
 
@@ -30,19 +30,19 @@ public class PartyDisplayButton extends Button {
                 break;
             }
 
-            lore.add(CC.GRAY + " - " + CC.RESET + teamPlayer.getDisplayName());
+            lore.add(Style.GRAY + " - " + Style.RESET + teamPlayer.getDisplayName());
 
             added++;
         }
 
         if (this.party.getTeamPlayers().size() != added) {
-            lore.add(CC.GRAY + " and " + (this.party.getTeamPlayers().size() - added) + " others...");
+            lore.add(Style.GRAY + " and " + (this.party.getTeamPlayers().size() - added) + " others...");
         }
 
         return new ItemBuilder(Material.SKULL_ITEM)
                 .amount(this.party.getTeamPlayers().size())
                 .durability(3)
-                .name(CC.GOLD + this.party.getLeader().getName() + "s Party")
+                .name(Style.GOLD + this.party.getLeader().getName() + "s Party")
                 .lore(lore)
                 .build();
     }

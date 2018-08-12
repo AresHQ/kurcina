@@ -1,6 +1,6 @@
 package me.joeleoli.praxi.runnable;
 
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -10,17 +10,17 @@ public class ExpBarRunnable implements Runnable {
     @Override
     public void run() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            if (playerData == null) {
+            if (praxiPlayer == null) {
                 continue;
             }
 
-            if (playerData.isOnEnderpearlCooldown()) {
-                int seconds = Math.round(playerData.getEnderpearlCooldown().getRemaining()) / 1_000;
+            if (praxiPlayer.isOnEnderpearlCooldown()) {
+                int seconds = Math.round(praxiPlayer.getEnderpearlCooldown().getRemaining()) / 1_000;
 
                 player.setLevel(seconds);
-                player.setExp(playerData.getEnderpearlCooldown().getRemaining() / 15_000.0F);
+                player.setExp(praxiPlayer.getEnderpearlCooldown().getRemaining() / 15_000.0F);
             }
         }
     }

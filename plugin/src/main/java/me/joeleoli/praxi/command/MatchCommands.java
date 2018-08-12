@@ -2,7 +2,7 @@ package me.joeleoli.praxi.command;
 
 import me.joeleoli.nucleus.command.Command;
 import me.joeleoli.nucleus.command.param.Parameter;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 
 import me.joeleoli.praxi.match.MatchSnapshot;
 import me.joeleoli.praxi.match.gui.MatchDetailsMenu;
@@ -24,7 +24,7 @@ public class MatchCommands {
         }
 
         if (cachedInventory == null) {
-            player.sendMessage(CC.RED + "Couldn't find an inventory for that ID.");
+            player.sendMessage(Style.RED + "Couldn't find an inventory for that ID.");
             return;
         }
 

@@ -1,7 +1,7 @@
 package me.joeleoli.praxi.command.param;
 
 import me.joeleoli.nucleus.command.param.ParameterType;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.praxi.arena.ArenaType;
 
 import org.bukkit.command.CommandSender;
@@ -19,7 +19,7 @@ public class ArenaTypeParameterType implements ParameterType<ArenaType> {
         try {
             type = ArenaType.valueOf(source);
         } catch (Exception e) {
-            sender.sendMessage(CC.RED + "That is not a valid arena type.");
+            sender.sendMessage(Style.RED + "That is not a valid arena type.");
             return null;
         }
 

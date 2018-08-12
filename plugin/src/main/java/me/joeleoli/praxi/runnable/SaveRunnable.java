@@ -1,13 +1,13 @@
 package me.joeleoli.praxi.runnable;
 
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 
 public class SaveRunnable implements Runnable {
 
     @Override
     public void run() {
-        for (PlayerData playerData : PlayerData.getPlayers().values()) {
-            playerData.save();
+        for (PraxiPlayer praxiPlayer : PraxiPlayer.getPlayers().values()) {
+            praxiPlayer.save();
         }
     }
 

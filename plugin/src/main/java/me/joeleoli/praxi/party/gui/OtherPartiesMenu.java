@@ -2,7 +2,7 @@ package me.joeleoli.praxi.party.gui;
 
 import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.menu.pagination.PaginatedMenu;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.praxi.party.Party;
 import me.joeleoli.praxi.party.gui.button.PartyDisplayButton;
 
@@ -15,7 +15,7 @@ public class OtherPartiesMenu extends PaginatedMenu {
 
     @Override
     public String getPrePaginatedTitle(Player player) {
-        return CC.GOLD + "Other Parties";
+        return Style.GOLD + "Other Parties";
     }
 
     @Override

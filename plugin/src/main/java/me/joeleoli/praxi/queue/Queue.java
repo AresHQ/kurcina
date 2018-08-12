@@ -1,9 +1,10 @@
 package me.joeleoli.praxi.queue;
 
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
+
 import me.joeleoli.praxi.ladder.Ladder;
 import me.joeleoli.praxi.player.PlayerState;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 
 import lombok.Getter;
 
@@ -33,18 +34,18 @@ public class Queue {
     }
 
     public void addPlayer(Player player, int elo) {
-        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
         final QueuePlayer queuePlayer = new QueuePlayer(this.uuid, player.getUniqueId());
-        final String message = CC.GREEN + "You joined the " + (this.ranked ? "Ranked" : "Unranked") + " " + this.ladder.getDisplayName() + CC.GREEN + " queue.";
 
         if (this.ranked) {
             queuePlayer.setElo(elo);
         }
 
-        playerData.setState(PlayerState.IN_QUEUE);
-        playerData.setQueuePlayer(queuePlayer);
-        playerData.loadLayout();
-        player.sendMessage(message);
+        praxiPlayer.setState(PlayerState.IN_QUEUE);
+        praxiPlayer.setQueuePlayer(queuePlayer);
+        praxiPlayer.loadLayout();
+
+        player.sendMessage(Style.PRIMARY + "You joined the " + Style.SECONDARY + (this.ranked ? "Ranked" : "Unranked") + " " + this.ladder.getName() + Style.PRIMARY + " queue.");
 
         this.players.add(queuePlayer);
     }
@@ -55,14 +56,14 @@ public class Queue {
         final Player player = Bukkit.getPlayer(queuePlayer.getPlayerUuid());
 
         if (player != null && player.isOnline()) {
-            player.sendMessage(CC.GREEN + "You left the " + (this.ranked ? "Ranked" : "Unranked") + " " + this.ladder.getDisplayName() + CC.GREEN + " queue.");
+            player.sendMessage(Style.PRIMARY + "You left the " + Style.SECONDARY + (this.ranked ? "Ranked" : "Unranked") + " " + this.ladder.getName() + Style.PRIMARY + " queue.");
         }
 
-        final PlayerData playerData = PlayerData.getByUuid(queuePlayer.getPlayerUuid());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(queuePlayer.getPlayerUuid());
 
-        playerData.setQueuePlayer(null);
-        playerData.setState(PlayerState.IN_LOBBY);
-        playerData.loadLayout();
+        praxiPlayer.setQueuePlayer(null);
+        praxiPlayer.setState(PlayerState.IN_LOBBY);
+        praxiPlayer.loadLayout();
 
         return queuePlayer;
     }

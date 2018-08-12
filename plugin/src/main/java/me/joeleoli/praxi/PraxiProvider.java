@@ -2,7 +2,7 @@ package me.joeleoli.praxi;
 
 import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.match.Match;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.praxi.queue.Queue;
 
 import org.bukkit.Bukkit;
@@ -25,12 +25,12 @@ public abstract class PraxiProvider extends JavaPlugin implements PraxiAPI, Runn
         int inFights = 0;
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            if (playerData != null) {
-                if (playerData.getState() == PlayerState.IN_QUEUE) {
+            if (praxiPlayer != null) {
+                if (praxiPlayer.getState() == PlayerState.IN_QUEUE) {
                     inQueues++;
-                } else if (playerData.getState() == PlayerState.IN_MATCH) {
+                } else if (praxiPlayer.getState() == PlayerState.IN_MATCH) {
                     inFights++;
                 }
             }

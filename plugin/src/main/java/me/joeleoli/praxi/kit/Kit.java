@@ -2,7 +2,7 @@ package me.joeleoli.praxi.kit;
 
 import lombok.Data;
 
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.ItemBuilder;
 
 import org.bukkit.Material;
@@ -11,7 +11,7 @@ import org.bukkit.inventory.ItemStack;
 @Data
 public class Kit {
 
-    public static final ItemStack DEFAULT_KIT = new ItemBuilder(Material.BOOK).name(CC.GOLD + "Default Kit").build();
+    public static final ItemStack DEFAULT_KIT = new ItemBuilder(Material.BOOK).name(Style.GOLD + "Default Kit").build();
 
     private ItemStack[] armor;
     private ItemStack[] contents;

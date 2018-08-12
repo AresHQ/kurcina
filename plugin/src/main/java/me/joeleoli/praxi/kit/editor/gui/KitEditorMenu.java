@@ -7,7 +7,7 @@ import me.joeleoli.nucleus.menu.Menu;
 import me.joeleoli.nucleus.menu.buttons.DisplayButton;
 import me.joeleoli.nucleus.util.*;
 import me.joeleoli.praxi.kit.NamedKit;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -32,14 +32,14 @@ public class KitEditorMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-        return CC.GOLD + "Editing " + CC.AQUA + playerData.getKitEditor().getSelectedKit().getName();
+        PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+        return Style.GOLD + "Editing " + Style.AQUA + praxiPlayer.getKitEditor().getSelectedKit().getName();
     }
 
     @Override
     public Map<Integer, Button> getButtons(Player player) {
-        PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-        NamedKit kit = playerData.getKitEditor().getSelectedKit();
+        PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+        NamedKit kit = praxiPlayer.getKitEditor().getSelectedKit();
         Map<Integer, Button> buttons = new HashMap<>();
 
         for (int border : BORDER_POSITIONS) {
@@ -56,9 +56,9 @@ public class KitEditorMenu extends Menu {
         buttons.put(36, new ArmorDisplayButton(kit.getArmor()[1]));
         buttons.put(45, new ArmorDisplayButton(kit.getArmor()[0]));
 
-        List<ItemStack> items = playerData.getKitEditor().getSelectedLadder().getKitEditorItems();
+        List<ItemStack> items = praxiPlayer.getKitEditor().getSelectedLadder().getKitEditorItems();
 
-        for (int i = 20; i < (playerData.getKitEditor().getSelectedLadder().getKitEditorItems().size() + 20); i++) {
+        for (int i = 20; i < (praxiPlayer.getKitEditor().getSelectedLadder().getKitEditorItems().size() + 20); i++) {
             buttons.put(ITEM_POSITIONS[i - 20], new InfiniteItemButton(items.get(i - 20)));
         }
 
@@ -70,11 +70,11 @@ public class KitEditorMenu extends Menu {
         if (!this.isClosedByMenu()) {
             PlayerUtil.reset(player);
 
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-            playerData.getKitEditor().setActive(true);
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+            praxiPlayer.getKitEditor().setActive(true);
 
-            if (playerData.getKitEditor().getSelectedKit() != null) {
-                player.getInventory().setContents(playerData.getKitEditor().getSelectedKit().getContents());
+            if (praxiPlayer.getKitEditor().getSelectedKit() != null) {
+                player.getInventory().setContents(praxiPlayer.getKitEditor().getSelectedKit().getContents());
             }
 
             player.updateInventory();
@@ -83,11 +83,11 @@ public class KitEditorMenu extends Menu {
 
     @Override
     public void onClose(Player player) {
-        PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-        playerData.getKitEditor().setActive(false);
+        PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+        praxiPlayer.getKitEditor().setActive(false);
 
-        if (!playerData.isInMatch()) {
-            TaskUtil.runLater(playerData::loadLayout, 1L);
+        if (!praxiPlayer.isInMatch()) {
+            TaskUtil.runLater(praxiPlayer::loadLayout, 1L);
         }
     }
 
@@ -103,10 +103,10 @@ public class KitEditorMenu extends Menu {
             }
 
             return new ItemBuilder(this.itemStack.clone())
-                    .name(CC.AQUA + ItemUtil.getName(this.itemStack))
+                    .name(Style.AQUA + ItemUtil.getName(this.itemStack))
                     .lore(Arrays.asList(
                             "",
-                            CC.YELLOW + "This is automatically equipped."
+                            Style.YELLOW + "This is automatically equipped."
                     ))
                     .build();
         }
@@ -118,10 +118,10 @@ public class KitEditorMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
             return new ItemBuilder(Material.NAME_TAG)
-                    .name(CC.GREEN + CC.BOLD + "Editing: " + CC.AQUA + playerData.getKitEditor().getSelectedKit().getName())
+                    .name(Style.GREEN + Style.BOLD + "Editing: " + Style.AQUA + praxiPlayer.getKitEditor().getSelectedKit().getName())
                     .build();
         }
 
@@ -134,11 +134,11 @@ public class KitEditorMenu extends Menu {
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.STAINED_CLAY)
                     .durability(7)
-                    .name(CC.YELLOW + CC.BOLD + "Clear Inventory")
+                    .name(Style.YELLOW + Style.BOLD + "Clear Inventory")
                     .lore(Arrays.asList(
                             "",
-                            CC.YELLOW + "This will clear your inventory",
-                            CC.YELLOW + "so you can start over."
+                            Style.YELLOW + "This will clear your inventory",
+                            Style.YELLOW + "so you can start over."
                     ))
                     .build();
         }
@@ -164,11 +164,11 @@ public class KitEditorMenu extends Menu {
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.STAINED_CLAY)
                     .durability(7)
-                    .name(CC.YELLOW + CC.BOLD + "Load default kit")
+                    .name(Style.YELLOW + Style.BOLD + "Load default kit")
                     .lore(Arrays.asList(
                             "",
-                            CC.YELLOW + "Click this to load the default kit",
-                            CC.YELLOW + "into the kit editing menu."
+                            Style.YELLOW + "Click this to load the default kit",
+                            Style.YELLOW + "into the kit editing menu."
                     ))
                     .build();
         }
@@ -177,9 +177,9 @@ public class KitEditorMenu extends Menu {
         public void clicked(Player player, int i, ClickType clickType, int hb) {
             Button.playNeutral(player);
 
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            player.getInventory().setContents(playerData.getKitEditor().getSelectedLadder().getDefaultKit().getContents());
+            player.getInventory().setContents(praxiPlayer.getKitEditor().getSelectedLadder().getDefaultKit().getContents());
             player.updateInventory();
         }
 
@@ -197,10 +197,10 @@ public class KitEditorMenu extends Menu {
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.STAINED_CLAY)
                     .durability(5)
-                    .name(CC.GREEN + CC.BOLD + "Save")
+                    .name(Style.GREEN + Style.BOLD + "Save")
                     .lore(Arrays.asList(
                             "",
-                            CC.YELLOW + "Click this to save your kit."
+                            Style.YELLOW + "Click this to save your kit."
                     ))
                     .build();
         }
@@ -210,15 +210,15 @@ public class KitEditorMenu extends Menu {
             Button.playNeutral(player);
             player.closeInventory();
 
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            if (playerData.getKitEditor().getSelectedKit() != null) {
-                playerData.getKitEditor().getSelectedKit().setContents(player.getInventory().getContents());
+            if (praxiPlayer.getKitEditor().getSelectedKit() != null) {
+                praxiPlayer.getKitEditor().getSelectedKit().setContents(player.getInventory().getContents());
             }
 
-            playerData.loadLayout();
+            praxiPlayer.loadLayout();
 
-            new KitManagementMenu(playerData.getKitEditor().getSelectedLadder()).openMenu(player);
+            new KitManagementMenu(praxiPlayer.getKitEditor().getSelectedLadder()).openMenu(player);
         }
 
     }
@@ -230,11 +230,11 @@ public class KitEditorMenu extends Menu {
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.STAINED_CLAY)
                     .durability(14)
-                    .name(CC.RED + CC.BOLD + "Cancel")
+                    .name(Style.RED + Style.BOLD + "Cancel")
                     .lore(Arrays.asList(
                             "",
-                            CC.YELLOW + "Click this to abort editing your kit,",
-                            CC.YELLOW + "and return to the kit menu."
+                            Style.YELLOW + "Click this to abort editing your kit,",
+                            Style.YELLOW + "and return to the kit menu."
                     ))
                     .build();
         }
@@ -243,10 +243,10 @@ public class KitEditorMenu extends Menu {
         public void clicked(Player player, int i, ClickType clickType, int hb) {
             Button.playNeutral(player);
 
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            if (playerData.getKitEditor().getSelectedLadder() != null) {
-                new KitManagementMenu(playerData.getKitEditor().getSelectedLadder()).openMenu(player);
+            if (praxiPlayer.getKitEditor().getSelectedLadder() != null) {
+                new KitManagementMenu(praxiPlayer.getKitEditor().getSelectedLadder()).openMenu(player);
             }
         }
 

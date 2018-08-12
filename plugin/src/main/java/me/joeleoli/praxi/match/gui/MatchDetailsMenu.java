@@ -7,10 +7,10 @@ import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.menu.Menu;
 import me.joeleoli.nucleus.menu.buttons.DisplayButton;
 import me.joeleoli.nucleus.util.*;
+
 import me.joeleoli.praxi.match.MatchPlayer;
 import me.joeleoli.praxi.match.MatchSnapshot;
 
-import org.apache.commons.lang.StringEscapeUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -27,7 +27,7 @@ public class MatchDetailsMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        return ChatColor.GOLD + "Inventory of " + this.snapshot.getMatchPlayer().getName();
+        return ChatColor.YELLOW + "Snapshot of " + this.snapshot.getMatchPlayer().getName();
     }
 
     @Override
@@ -74,8 +74,7 @@ public class MatchDetailsMenu extends Menu {
 
     @Override
     public void onOpen(Player player) {
-        player.sendMessage(CC.GREEN + "Viewing inventory of " + CC.RESET + this.snapshot.getMatchPlayer()
-                .getDisplayName() + CC.GREEN + "...");
+        player.sendMessage(Style.YELLOW + "You are viewing " + Style.AQUA + this.snapshot.getMatchPlayer().getName() + Style.YELLOW + "'s inventory...");
     }
 
     @AllArgsConstructor
@@ -86,10 +85,10 @@ public class MatchDetailsMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.LEVER)
-                    .name(CC.GREEN + "View " + this.switchTo.getName() + "'s inventory")
+                    .name(Style.DARK_AQUA + "Switch inventory")
                     .lore(Arrays.asList(
                             "",
-                            CC.YELLOW + "Swap your view to " + this.switchTo.getName() + "'s inventory"
+                            Style.YELLOW + "Switch to " + Style.AQUA + this.switchTo.getName() + Style.YELLOW + "'s inventory"
                     ))
                     .build();
         }
@@ -109,7 +108,7 @@ public class MatchDetailsMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.MELON)
-                    .name("&a" + this.health + "/10 " + StringEscapeUtils.unescapeJava("\u2764"))
+                    .name(Style.DARK_AQUA + this.health + "/10 " + Style.UNICODE_HEART)
                     .amount(this.health == 0 ? 1 : this.health)
                     .build();
         }
@@ -124,7 +123,7 @@ public class MatchDetailsMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.COOKED_BEEF)
-                    .name("&a" + this.hunger + "/20 Hunger")
+                    .name(Style.DARK_AQUA + this.hunger + "/20 Hunger")
                     .amount(this.hunger == 0 ? 1 : this.hunger)
                     .build();
         }
@@ -138,23 +137,19 @@ public class MatchDetailsMenu extends Menu {
 
         @Override
         public ItemStack getButtonItem(Player player) {
-            final ItemBuilder builder = new ItemBuilder(Material.POTION).name(CC.GREEN + "Potion Effects");
+            final ItemBuilder builder = new ItemBuilder(Material.POTION)
+                    .name(Style.DARK_AQUA + Style.BOLD + "Potion Effects");
 
             if (this.effects.isEmpty()) {
-                builder.lore(Arrays.asList(
-                        "",
-                        CC.GRAY + "No effects"
-                ));
+                builder.lore(Style.YELLOW + "No potion effects");
             } else {
                 final List<String> lore = new ArrayList<>();
 
-                lore.add("");
-
                 this.effects.forEach(effect -> {
                     final String name = BukkitUtil.getName(effect.getType()) + " " + (effect.getAmplifier() + 1);
-                    final String duration = CC.GRAY + " (" + TimeUtil.formatTime((effect.getDuration() / 20) * 1000) + ")";
+                    final String duration = Style.GRAY + " (" + TimeUtil.millisToTimer((effect.getDuration() / 20) * 1000) + ")";
 
-                    lore.add(CC.AQUA + name + duration);
+                    lore.add(Style.AQUA + name + duration);
                 });
 
                 builder.lore(lore);
@@ -176,8 +171,8 @@ public class MatchDetailsMenu extends Menu {
             return new ItemBuilder(Material.POTION)
                     .durability(16421)
                     .amount(this.potions == 0 ? 1 : this.potions)
-                    .name(CC.GREEN + this.potions + " health potion" + (this.potions == 1 ? "" : "s"))
-                    .lore(CC.YELLOW + this.name + " had " + this.potions + " health potion" + (this.potions == 1 ? "" : "s") + " left.")
+                    .name(Style.DARK_AQUA + this.potions + " Potion" + (this.potions == 1 ? "" : "s"))
+                    .lore(Style.AQUA + this.name + Style.YELLOW + " had " + Style.AQUA + this.potions + Style.YELLOW + " potion" + (this.potions == 1 ? "" : "s") + " left.")
                     .build();
         }
 
@@ -191,13 +186,13 @@ public class MatchDetailsMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.PAPER)
-                    .name(CC.GREEN + "Match Stats")
+                    .name(Style.DARK_AQUA + Style.BOLD + "Statistics")
                     .lore(Arrays.asList(
-                            CC.PINK + "Hits: " + CC.YELLOW + this.matchPlayer.getHits(),
-                            CC.PINK + "Longest Combo: " + CC.YELLOW + this.matchPlayer.getLongestCombo(),
-                            CC.PINK + "Potions Thrown: " + CC.YELLOW + this.matchPlayer.getPotionsThrown(),
-                            CC.PINK + "Potions Missed: " + CC.YELLOW + this.matchPlayer.getPotionsMissed(),
-                            CC.PINK + "Potion Accuracy: " + CC.YELLOW + this.matchPlayer.getPotionAccuracy()
+                            Style.WHITE + "Hits: " + Style.AQUA + this.matchPlayer.getHits(),
+                            Style.WHITE + "Longest Combo: " + Style.AQUA + this.matchPlayer.getLongestCombo(),
+                            Style.WHITE + "Potions Thrown: " + Style.AQUA + this.matchPlayer.getPotionsThrown(),
+                            Style.WHITE + "Potions Missed: " + Style.AQUA + this.matchPlayer.getPotionsMissed(),
+                            Style.WHITE + "Potion Accuracy: " + Style.AQUA + this.matchPlayer.getPotionAccuracy()
                     ))
                     .build();
         }

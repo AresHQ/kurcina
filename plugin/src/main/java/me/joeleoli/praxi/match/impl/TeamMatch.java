@@ -3,7 +3,7 @@ package me.joeleoli.praxi.match.impl;
 import lombok.Getter;
 
 import me.joeleoli.nucleus.chat.ChatComponentBuilder;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.PlayerUtil;
 
 import me.joeleoli.praxi.arena.Arena;
@@ -53,19 +53,19 @@ public class TeamMatch extends Match {
                 final MatchTeam opponent = this.getOpponentTeam(player);
 
                 final StringBuilder builder = new StringBuilder()
-                        .append(CC.YELLOW)
+                        .append(Style.YELLOW)
                         .append("Starting a ")
                         .append(this.getLadder().getDisplayName())
-                        .append(CC.YELLOW)
+                        .append(Style.YELLOW)
                         .append(" match against ")
-                        .append(CC.AQUA)
+                        .append(Style.AQUA)
                         .append(opponent.getLeader().getName())
                         .append("'s team")
-                        .append(CC.YELLOW)
+                        .append(Style.YELLOW)
                         .append(" on ")
-                        .append(CC.AQUA)
+                        .append(Style.AQUA)
                         .append(this.getArena().getName())
-                        .append(CC.YELLOW)
+                        .append(Style.YELLOW)
                         .append(".");
 
                 player.sendMessage(builder.toString());
@@ -120,11 +120,11 @@ public class TeamMatch extends Match {
 
         final List<BaseComponent[]> components = new ArrayList<>();
 
-        components.add(new ChatComponentBuilder("").parse(CC.HORIZONTAL_SEPARATOR).create());
+        components.add(new ChatComponentBuilder("").parse(Style.getBorderLine()).create());
         components.add(new ChatComponentBuilder("").parse("&6Post-Match Inventories &7(click name to view)").create());
         components.add(winnerInventories.create());
         components.add(loserInventories.create());
-        components.add(new ChatComponentBuilder("").parse(CC.HORIZONTAL_SEPARATOR).create());
+        components.add(new ChatComponentBuilder("").parse(Style.getBorderLine()).create());
 
         for (Player player : this.getPlayers()) {
             components.forEach(player::sendMessage);
@@ -397,7 +397,7 @@ public class TeamMatch extends Match {
                     this.getPlayers().forEach(other -> other.hidePlayer(player));
                     this.getSpectators().forEach(other -> other.hidePlayer(player));
                 } else {
-                    final String broadcast = roundWinner.getLeader().getDisplayName() + CC.YELLOW + "'s team has " + CC.GREEN + "won" + CC.YELLOW + " the round, they need " + CC.GOLD + this.getRoundsNeeded(roundWinner) + CC.YELLOW + " more to win.";
+                    final String broadcast = roundWinner.getLeader().getDisplayName() + Style.YELLOW + "'s team has " + Style.GREEN + "won" + Style.YELLOW + " the round, they need " + Style.GOLD + this.getRoundsNeeded(roundWinner) + Style.YELLOW + " more to win.";
 
                     this.broadcast(broadcast);
                     this.handleStart();

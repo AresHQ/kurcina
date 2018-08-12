@@ -5,10 +5,10 @@ import lombok.AllArgsConstructor;
 import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.menu.Menu;
 
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.praxi.ladder.Ladder;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -22,7 +22,7 @@ public class SelectLadderKitMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        return CC.GOLD + CC.BOLD + "Select a ladder...";
+        return Style.GOLD + Style.BOLD + "Select a ladder...";
     }
 
     @Override
@@ -46,10 +46,10 @@ public class SelectLadderKitMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(this.ladder.getDisplayIcon())
-                    .name(this.ladder.getDisplayName())
+                    .name(Style.SECONDARY + Style.BOLD + this.ladder.getName())
                     .lore(Arrays.asList(
                             "",
-                            CC.YELLOW + "Click to select " + CC.BOLD + this.ladder.getName() + CC.YELLOW + "."
+                            Style.PRIMARY + "Click to select " + Style.SECONDARY + Style.BOLD + this.ladder.getName() + Style.PRIMARY + "."
                     ))
                     .build();
         }
@@ -58,10 +58,10 @@ public class SelectLadderKitMenu extends Menu {
         public void clicked(Player player, int slot, ClickType clickType, int hotbarSlot) {
             player.closeInventory();
 
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            playerData.getKitEditor().setSelectedLadder(this.ladder);
-            playerData.getKitEditor().setPreviousState(playerData.getState());
+            praxiPlayer.getKitEditor().setSelectedLadder(this.ladder);
+            praxiPlayer.getKitEditor().setPreviousState(praxiPlayer.getState());
 
             new KitManagementMenu(this.ladder).openMenu(player);
         }

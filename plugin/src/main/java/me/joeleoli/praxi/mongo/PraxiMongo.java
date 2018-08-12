@@ -5,33 +5,27 @@ import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.ReplaceOptions;
 
-import me.joeleoli.praxi.Praxi;
-import lombok.Getter;
 import me.joeleoli.nucleus.config.ConfigCursor;
 
+import me.joeleoli.praxi.Praxi;
+
+import me.joeleoli.praxi.player.PraxiPlayer;
 import org.bson.Document;
 
 import java.util.Collections;
+import java.util.UUID;
 
-@Getter
-public class PracticeMongo {
-
-    @Getter
-    private static PracticeMongo instance;
+public class PraxiMongo {
 
     private MongoClient client;
     private MongoDatabase database;
     private MongoCollection<Document> players;
     private MongoCollection<Document> matches;
 
-    public PracticeMongo() {
-        if (instance != null) {
-            throw new RuntimeException("The mongo database has already been instantiated.");
-        }
-
-        instance = this;
-
+    public PraxiMongo() {
         ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getMainConfig(), "mongo");
 
         if (!cursor.exists("host")
@@ -59,6 +53,14 @@ public class PracticeMongo {
         this.database = this.client.getDatabase("praxi");
         this.players = this.database.getCollection("players");
         this.matches = this.database.getCollection("matches");
+    }
+
+    public Document getPlayer(UUID uuid) {
+        return this.players.find(Filters.eq("uuid", uuid.toString())).first();
+    }
+
+    public void replacePlayer(PraxiPlayer player, Document document) {
+        this.players.replaceOne(Filters.eq("uuid", player.getUuid().toString()), document, new ReplaceOptions().upsert(true));
     }
 
 }

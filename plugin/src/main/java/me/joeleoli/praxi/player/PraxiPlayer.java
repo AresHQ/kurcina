@@ -4,24 +4,19 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import com.mongodb.client.model.ReplaceOptions;
-
 import me.joeleoli.nucleus.cooldown.Cooldown;
 import me.joeleoli.nucleus.player.PlayerInfo;
 import me.joeleoli.nucleus.util.InventoryUtil;
-import me.joeleoli.nucleus.util.MongoUtil;
 import me.joeleoli.nucleus.util.PlayerUtil;
 
 import me.joeleoli.praxi.Praxi;
-import me.joeleoli.praxi.event.Event;
-import me.joeleoli.praxi.hotbar.HotbarLayout;
+import me.joeleoli.praxi.events.Event;
 import me.joeleoli.praxi.kit.Kit;
 import me.joeleoli.praxi.kit.NamedKit;
 import me.joeleoli.praxi.duel.DuelRequest;
 import me.joeleoli.praxi.duel.DuelProcedure;
 import me.joeleoli.praxi.ladder.Ladder;
 import me.joeleoli.praxi.match.Match;
-import me.joeleoli.praxi.mongo.PracticeMongo;
 import me.joeleoli.praxi.party.Party;
 import me.joeleoli.praxi.queue.QueuePlayer;
 
@@ -38,10 +33,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.*;
 
 @Getter
-public class PlayerData extends PlayerInfo {
+public class PraxiPlayer extends PlayerInfo {
 
     @Getter
-    private static Map<UUID, PlayerData> players = new HashMap<>();
+    private static Map<UUID, PraxiPlayer> players = new HashMap<>();
 
     @Setter
     private PlayerState state;
@@ -63,7 +58,7 @@ public class PlayerData extends PlayerInfo {
     private DuelProcedure duelProcedure;
     private boolean loaded;
 
-    public PlayerData(UUID uuid, String name) {
+    public PraxiPlayer(UUID uuid, String name) {
         super(uuid, name);
 
         this.state = PlayerState.IN_LOBBY;
@@ -135,26 +130,26 @@ public class PlayerData extends PlayerInfo {
 
         if (this.state == PlayerState.IN_LOBBY) {
             if (this.party == null) {
-                player.getInventory().setContents(PlayerHotbar.getLayout(HotbarLayout.LOBBY_NO_PARTY));
+                player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.LOBBY_NO_PARTY));
             } else {
                 if (this.party.getLeader().getUuid().equals(player.getUniqueId())) {
-                    player.getInventory().setContents(PlayerHotbar.getLayout(HotbarLayout.LOBBY_PARTY_LEADER));
+                    player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.LOBBY_PARTY_LEADER));
                 } else {
-                    player.getInventory().setContents(PlayerHotbar.getLayout(HotbarLayout.LOBBY_PARTY_MEMBER));
+                    player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.LOBBY_PARTY_MEMBER));
                 }
             }
         } else if (this.isInQueue()) {
             if (this.party == null) {
-                player.getInventory().setContents(PlayerHotbar.getLayout(HotbarLayout.QUEUE_NO_PARTY));
+                player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.QUEUE_NO_PARTY));
             } else {
                 if (this.party.getLeader().getUuid().equals(player.getUniqueId())) {
-                    player.getInventory().setContents(PlayerHotbar.getLayout(HotbarLayout.QUEUE_PARTY_LEADER));
+                    player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.QUEUE_PARTY_LEADER));
                 } else {
-                    player.getInventory().setContents(PlayerHotbar.getLayout(HotbarLayout.QUEUE_PARTY_MEMBER));
+                    player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.QUEUE_PARTY_MEMBER));
                 }
             }
         } else if (this.state == PlayerState.SPECTATE_MATCH && this.match != null) {
-            player.getInventory().setContents(PlayerHotbar.getLayout(HotbarLayout.SPECTATE));
+            player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.SPECTATE));
         }
 
         player.updateInventory();
@@ -218,7 +213,7 @@ public class PlayerData extends PlayerInfo {
 
     public void load() {
         try {
-            Document document = PracticeMongo.getInstance().getPlayers().find(MongoUtil.find("uuid", this.getUuid().toString())).first();
+            Document document = Praxi.getInstance().getPraxiMongo().getPlayer(this.getUuid());
 
             if (document == null) {
                 this.loaded = true;
@@ -329,17 +324,17 @@ public class PlayerData extends PlayerInfo {
         document.put("statistics", statisticsDocument);
         document.put("kits", kitsDocument);
 
-        PracticeMongo.getInstance().getPlayers().replaceOne(MongoUtil.find("uuid", this.getUuid().toString()), document, new ReplaceOptions().upsert(true));
+        Praxi.getInstance().getPraxiMongo().replacePlayer(this, document);
     }
 
-    public static PlayerData getByUuid(UUID uuid) {
-        PlayerData playerData = players.get(uuid);
+    public static PraxiPlayer getByUuid(UUID uuid) {
+        PraxiPlayer praxiPlayer = players.get(uuid);
 
-        if (playerData == null) {
-            playerData = new PlayerData(uuid, null);
+        if (praxiPlayer == null) {
+            praxiPlayer = new PraxiPlayer(uuid, null);
         }
 
-        return playerData;
+        return praxiPlayer;
     }
 
 }

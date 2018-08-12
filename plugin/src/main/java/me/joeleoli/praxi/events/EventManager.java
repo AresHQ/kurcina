@@ -1,4 +1,4 @@
-package me.joeleoli.praxi.event;
+package me.joeleoli.praxi.events;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,15 +12,25 @@ import me.joeleoli.praxi.Praxi;
 import org.bukkit.Location;
 
 @Getter
+@Setter
 public class EventManager {
 
     private Event activeEvent;
     private Cooldown eventCooldown = new Cooldown(0);
-    @Setter
     private Location sumoSpectator, sumoSpawn1, sumoSpawn2;
 
+    public void setActiveEvent(Event event) {
+        if (event == null) {
+            this.activeEvent = null;
+            return;
+        }
+
+        this.activeEvent = event;
+        this.activeEvent.handleStart();
+    }
+
     public void load() {
-        ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getMainConfig(), "event");
+        ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getMainConfig(), "events");
 
         if (cursor.exists("sumo.spectator")) {
             this.sumoSpectator = LocationUtil.deserialize(cursor.getString("sumo.spectator"));
@@ -36,7 +46,7 @@ public class EventManager {
     }
 
     public void save() {
-        ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getMainConfig(), "event");
+        ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getMainConfig(), "events");
 
         if (this.sumoSpectator != null) {
             cursor.set("sumo.spectator", LocationUtil.serialize(this.sumoSpectator));

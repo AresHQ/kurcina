@@ -1,4 +1,4 @@
-package me.joeleoli.praxi.event;
+package me.joeleoli.praxi.events;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

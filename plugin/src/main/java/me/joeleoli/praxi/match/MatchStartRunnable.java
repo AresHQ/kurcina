@@ -1,9 +1,10 @@
 package me.joeleoli.praxi.match;
 
 import me.joeleoli.fairfight.FairFight;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 
 import org.bukkit.Sound;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class MatchStartRunnable extends BukkitRunnable {
@@ -27,37 +28,55 @@ public class MatchStartRunnable extends BukkitRunnable {
         if (this.match.getLadder().isSumo()) {
             if (seconds == 2) {
                 if (this.match.isSoloMatch()) {
-                    FairFight.getInstance().getPlayerDataManager().getPlayerData(this.match.getPlayerA()).setAllowTeleport(false);
-                    FairFight.getInstance().getPlayerDataManager().getPlayerData(this.match.getPlayerB()).setAllowTeleport(false);
+                    final Player playerA = this.match.getPlayerA();
+                    final Player playerB = this.match.getPlayerB();
+
+                    if (playerA != null) {
+                        FairFight.getInstance().getPlayerDataManager().getPlayerData(playerA).setAllowTeleport(false);
+
+                        playerA.setWalkSpeed(0.2F);
+                    }
+
+                    if (playerB != null) {
+                        FairFight.getInstance().getPlayerDataManager().getPlayerData(playerB).setAllowTeleport(false);
+
+                        playerB.setWalkSpeed(0.2F);
+                    }
                 } else if (this.match.isTeamMatch()) {
                     this.match.getMatchPlayers().forEach(matchPlayer -> {
                         if (!matchPlayer.isDisconnected()) {
-                            FairFight.getInstance().getPlayerDataManager().getPlayerData(matchPlayer.toPlayer()).setAllowTeleport(false);
+                            final Player player = matchPlayer.toPlayer();
+
+                            if (player != null) {
+                                FairFight.getInstance().getPlayerDataManager().getPlayerData(player).setAllowTeleport(false);
+
+                                player.setWalkSpeed(0.2F);
+                            }
                         }
                     });
                 }
 
                 this.match.setState(MatchState.FIGHTING);
                 this.match.setStartTimestamp(System.currentTimeMillis());
-                this.match.broadcast(CC.GREEN + "The round has started!");
+                this.match.broadcast(Style.GREEN + "The round has started!");
                 this.match.broadcast(Sound.NOTE_BASS);
                 this.cancel();
                 return;
             }
 
-            this.match.broadcast(CC.YELLOW + "The round will start in " + CC.GREEN + (seconds - 2) + " second" + (seconds - 2== 1 ? "" : "s") + CC.YELLOW + "...");
+            this.match.broadcast(Style.YELLOW + "The round will start in " + Style.GREEN + (seconds - 2) + " second" + (seconds - 2== 1 ? "" : "s") + Style.YELLOW + "...");
             this.match.broadcast(Sound.NOTE_PLING);
         } else {
             if (seconds == 0) {
                 this.match.setState(MatchState.FIGHTING);
                 this.match.setStartTimestamp(System.currentTimeMillis());
-                this.match.broadcast(CC.GREEN + "The match has started!");
+                this.match.broadcast(Style.GREEN + "The match has started!");
                 this.match.broadcast(Sound.NOTE_BASS);
                 this.cancel();
                 return;
             }
 
-            this.match.broadcast(CC.YELLOW + "The match will start in " + CC.GREEN + seconds + " second" + (seconds == 1 ? "" : "s") + CC.YELLOW + "...");
+            this.match.broadcast(Style.YELLOW + "The match will start in " + Style.GREEN + seconds + " second" + (seconds == 1 ? "" : "s") + Style.YELLOW + "...");
             this.match.broadcast(Sound.NOTE_PLING);
         }
 

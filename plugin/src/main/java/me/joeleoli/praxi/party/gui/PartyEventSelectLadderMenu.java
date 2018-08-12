@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 
 import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.menu.Menu;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.praxi.arena.Arena;
 import me.joeleoli.praxi.ladder.Ladder;
@@ -14,7 +14,7 @@ import me.joeleoli.praxi.match.MatchTeam;
 import me.joeleoli.praxi.match.impl.TeamMatch;
 import me.joeleoli.praxi.party.Party;
 import me.joeleoli.praxi.party.PartyEvent;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.praxi.player.PlayerState;
 
 import org.bukkit.entity.Player;
@@ -27,7 +27,7 @@ public class PartyEventSelectLadderMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        return CC.GOLD + CC.BOLD + "Select a ladder...";
+        return Style.GOLD + Style.BOLD + "Select a ladder...";
     }
 
     @Override
@@ -46,10 +46,10 @@ public class PartyEventSelectLadderMenu extends Menu {
     @Override
     public void onClose(Player player) {
         if (!this.isClosedByMenu()) {
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            if (playerData.getParty() != null) {
-                playerData.getParty().setSelectedEvent(null);
+            if (praxiPlayer.getParty() != null) {
+                praxiPlayer.getParty().setSelectedEvent(null);
             }
         }
     }
@@ -62,10 +62,10 @@ public class PartyEventSelectLadderMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(this.ladder.getDisplayIcon())
-                    .name(this.ladder.getDisplayName())
+                    .name(Style.SECONDARY + Style.BOLD + this.ladder.getName())
                     .lore(Arrays.asList(
                             "",
-                            CC.YELLOW + "Click here to select " + CC.BOLD + this.ladder.getDisplayName() + CC.YELLOW + "."
+                            Style.PRIMARY + "Click here to select " + Style.SECONDARY + Style.BOLD + this.ladder.getDisplayName() + Style.PRIMARY + "."
                     ))
                     .build();
         }
@@ -76,27 +76,27 @@ public class PartyEventSelectLadderMenu extends Menu {
 
             player.closeInventory();
 
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            if (playerData.getParty() == null) {
-                player.sendMessage(CC.RED + "You are not in a party.");
+            if (praxiPlayer.getParty() == null) {
+                player.sendMessage(Style.RED + "You are not in a party.");
                 return;
             }
 
-            if (playerData.getParty().getSelectedEvent() == null) {
+            if (praxiPlayer.getParty().getSelectedEvent() == null) {
                 return;
             }
 
-            if (playerData.getParty().getTeamPlayers().size() <= 1) {
-                player.sendMessage(CC.RED + "You do not have enough players in your party to start an event.");
+            if (praxiPlayer.getParty().getTeamPlayers().size() <= 1) {
+                player.sendMessage(Style.RED + "You do not have enough players in your party to start an events.");
                 return;
             }
 
-            Party party = playerData.getParty();
+            Party party = praxiPlayer.getParty();
             Arena arena = Arena.getRandom(this.ladder);
 
             if (arena == null) {
-                player.sendMessage(CC.RED + "There are no available arenas.");
+                player.sendMessage(Style.RED + "There are no available arenas.");
                 return;
             }
 
@@ -105,7 +105,7 @@ public class PartyEventSelectLadderMenu extends Menu {
             Match match;
 
             if (party.getSelectedEvent() == PartyEvent.FFA) {
-                player.sendMessage(CC.RED + "The FFA party event is currently disabled.");
+                player.sendMessage(Style.RED + "The FFA party events is currently disabled.");
                 return;
             } else {
                 MatchTeam teamA = new MatchTeam(new MatchPlayer(party.getLeader().toPlayer()));
@@ -121,7 +121,7 @@ public class PartyEventSelectLadderMenu extends Menu {
                 match = new TeamMatch(teamA, teamB, this.ladder, arena);
 
                 for (Player other : players) {
-                    final PlayerData otherData = PlayerData.getByUuid(other.getUniqueId());
+                    final PraxiPlayer otherData = PraxiPlayer.getByUuid(other.getUniqueId());
 
                     otherData.setState(PlayerState.IN_MATCH);
                     otherData.setMatch(match);

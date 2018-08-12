@@ -3,14 +3,14 @@ package me.joeleoli.praxi.match.impl;
 import lombok.Getter;
 
 import me.joeleoli.nucleus.chat.ChatComponentBuilder;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.PlayerUtil;
 
 import me.joeleoli.praxi.arena.Arena;
 import me.joeleoli.praxi.elo.EloUtil;
 import me.joeleoli.praxi.ladder.Ladder;
 import me.joeleoli.praxi.match.*;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -61,29 +61,29 @@ public class SoloMatch extends Match {
                 final String ladderName = (this.isRanked() ? "Ranked" : "Unranked") + " " + this.getLadder().getDisplayName();
 
                 final StringBuilder builder = new StringBuilder()
-                        .append(CC.YELLOW)
+                        .append(Style.YELLOW)
                         .append("Starting a ")
                         .append(ladderName)
-                        .append(CC.YELLOW)
+                        .append(Style.YELLOW)
                         .append(" match against ")
-                        .append(CC.AQUA)
+                        .append(Style.AQUA)
                         .append(opponent.getName())
                         .append(" ");
 
                 if (this.isRanked()) {
                     builder
-                            .append(CC.GREEN)
+                            .append(Style.GREEN)
                             .append("(")
                             .append(opponent.getElo())
                             .append(") ");
                 }
 
                 builder
-                        .append(CC.YELLOW)
+                        .append(Style.YELLOW)
                         .append("on ")
-                        .append(CC.AQUA)
+                        .append(Style.AQUA)
                         .append(this.getArena().getName())
-                        .append(CC.YELLOW)
+                        .append(Style.YELLOW)
                         .append(".");
 
                 player.sendMessage(builder.toString());
@@ -132,15 +132,15 @@ public class SoloMatch extends Match {
             final int newWinnerElo = EloUtil.getNewRating(oldWinnerElo, oldLoserElo, true);
             final int newLoserElo = EloUtil.getNewRating(oldLoserElo, oldWinnerElo, false);
 
-            final PlayerData winningPlayerData = PlayerData.getByUuid(winningPlayer.getUniqueId());
-            final PlayerData losingPlayerData = PlayerData.getByUuid(losingPlayer.getUniqueId());
+            final PraxiPlayer winningPraxiPlayer = PraxiPlayer.getByUuid(winningPlayer.getUniqueId());
+            final PraxiPlayer losingPraxiPlayer = PraxiPlayer.getByUuid(losingPlayer.getUniqueId());
 
-            if (winningPlayerData.isLoaded()) {
-                winningPlayerData.getStatistics().getLadderStatistics(this.getLadder()).setElo(newWinnerElo);
+            if (winningPraxiPlayer.isLoaded()) {
+                winningPraxiPlayer.getStatistics().getLadderStatistics(this.getLadder()).setElo(newWinnerElo);
             }
 
-            if (losingPlayerData.isLoaded()) {
-                losingPlayerData.getStatistics().getLadderStatistics(this.getLadder()).setElo(newLoserElo);
+            if (losingPraxiPlayer.isLoaded()) {
+                losingPraxiPlayer.getStatistics().getLadderStatistics(this.getLadder()).setElo(newLoserElo);
             }
 
             int winnerEloChange = newWinnerElo - oldWinnerElo;
@@ -151,8 +151,8 @@ public class SoloMatch extends Match {
                     .create());
         }
 
-        components.add(0, new ChatComponentBuilder("").parse(CC.HORIZONTAL_SEPARATOR).create());
-        components.add(new ChatComponentBuilder("").parse(CC.HORIZONTAL_SEPARATOR).create());
+        components.add(0, new ChatComponentBuilder("").parse(Style.getBorderLine()).create());
+        components.add(new ChatComponentBuilder("").parse(Style.getBorderLine()).create());
 
         for (Player player : new Player[]{winningPlayer, losingPlayer}) {
             components.forEach(player::sendMessage);
@@ -340,14 +340,14 @@ public class SoloMatch extends Match {
             }
 
             if (this.canEnd()) {
-                final String broadcast = roundWinner.getDisplayName() + CC.YELLOW + " has " + CC.GREEN + "won" + CC.YELLOW + " the match.";
+                final String broadcast = roundWinner.getDisplayName() + Style.YELLOW + " has " + Style.GREEN + "won" + Style.YELLOW + " the match.";
 
                 this.setState(MatchState.ENDING);
                 this.broadcast(broadcast);
                 this.getOpponentPlayer(player).hidePlayer(player);
                 this.getSpectators().forEach(other -> other.hidePlayer(player));
             } else {
-                final String broadcast = roundWinner.getDisplayName() + CC.YELLOW + " has " + CC.GREEN + "won" + CC.YELLOW + " the round, they need " + CC.GOLD + this.getRoundsNeeded(roundWinner) + CC.YELLOW + " more to win.";
+                final String broadcast = roundWinner.getDisplayName() + Style.YELLOW + " has " + Style.GREEN + "won" + Style.YELLOW + " the round, they need " + Style.GOLD + this.getRoundsNeeded(roundWinner) + Style.YELLOW + " more to win.";
 
                 this.broadcast(broadcast);
                 this.handleStart();

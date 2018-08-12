@@ -1,29 +1,23 @@
 package me.joeleoli.praxi.listener;
 
-import me.joeleoli.nucleus.Nucleus;
 import me.joeleoli.nucleus.command.CommandHandler;
 import me.joeleoli.nucleus.cooldown.Cooldown;
 import me.joeleoli.nucleus.util.*;
 
 import me.joeleoli.praxi.arena.Arena;
-import me.joeleoli.praxi.arena.ArenaType;
-import me.joeleoli.praxi.hotbar.HotbarItem;
 import me.joeleoli.praxi.kit.Kit;
 import me.joeleoli.praxi.kit.NamedKit;
 import me.joeleoli.praxi.match.Match;
-import me.joeleoli.praxi.match.MatchTeam;
 import me.joeleoli.praxi.party.gui.PartyEventSelectEventMenu;
 import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.kit.editor.gui.KitManagementMenu;
 import me.joeleoli.praxi.kit.editor.gui.SelectLadderKitMenu;
 import me.joeleoli.praxi.party.gui.OtherPartiesMenu;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.praxi.player.PlayerHotbar;
 import me.joeleoli.praxi.match.gui.ViewInventoryMenu;
 import me.joeleoli.praxi.queue.Queue;
 import me.joeleoli.praxi.queue.gui.QueueJoinMenu;
-
-import org.apache.commons.lang.StringEscapeUtils;
 
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -32,7 +26,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -43,7 +36,6 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -51,20 +43,16 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onRegenerate(EntityRegainHealthEvent event) {
-        if (!(event.getEntity() instanceof Player)) {
-            return;
-        }
+        if (event.getEntity() instanceof Player) {
+            if (event.getRegainReason() == EntityRegainHealthEvent.RegainReason.SATIATED) {
+                final Player player = (Player) event.getEntity();
+                final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-        if (event.getRegainReason() != EntityRegainHealthEvent.RegainReason.SATIATED) {
-            return;
-        }
-
-        final Player player = (Player) event.getEntity();
-        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-
-        if (playerData.isInMatch()) {
-            if (!playerData.getMatch().getLadder().isRegeneration()) {
-                event.setCancelled(true);
+                if (praxiPlayer.isInMatch()) {
+                    if (!praxiPlayer.getMatch().getLadder().isRegeneration()) {
+                        event.setCancelled(true);
+                    }
+                }
             }
         }
     }
@@ -72,157 +60,99 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onPlayerItemConsume(PlayerItemConsumeEvent event) {
         if (event.getItem().getType() == Material.GOLDEN_APPLE) {
-            if (!event.getItem().hasItemMeta() || !event.getItem().getItemMeta().getDisplayName().contains("Golden Head")) {
-                return;
+            if (event.getItem().hasItemMeta() && event.getItem().getItemMeta().getDisplayName().contains("Golden Head")) {
+                final Player player = event.getPlayer();
+
+                player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 200, 1));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 2400, 0));
+                player.setFoodLevel(Math.min(player.getFoodLevel() + 6, 20));
             }
-
-            final Player player = event.getPlayer();
-
-            player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 200, 1));
-            player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 2400, 0));
-            player.setFoodLevel(Math.min(player.getFoodLevel() + 6, 20));
         }
     }
 
     @EventHandler
     public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
         final Player player = event.getPlayer();
-        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-        if (playerData.isSpectating() && event.getRightClicked() instanceof Player && player.getItemInHand() != null) {
+        if (praxiPlayer.isSpectating() && event.getRightClicked() instanceof Player && player.getItemInHand() != null) {
             final Player target = (Player) event.getRightClicked();
 
-            if (PlayerHotbar.fromItemStack(player.getItemInHand()) == HotbarItem.VIEW_INVENTORY) {
+            if (PlayerHotbar.fromItemStack(player.getItemInHand()) == PlayerHotbar.HotbarItem.VIEW_INVENTORY) {
                 new ViewInventoryMenu(target).openMenu(player);
-            }
-        }
-    }
-
-    @EventHandler
-    public void onProjectileLaunch(ProjectileLaunchEvent event) {
-        if (event.getEntity() instanceof ThrownPotion) {
-            if (event.getEntity().getShooter() instanceof Player) {
-                final Player shooter = (Player) event.getEntity().getShooter();
-                final PlayerData shooterData = PlayerData.getByUuid(shooter.getUniqueId());
-
-                if (shooterData.isInMatch()) {
-                    shooterData.getMatch().getMatchPlayer(shooter).incrementPotionsThrown();
-                }
-            }
-        }
-    }
-
-    @EventHandler
-    public void onProjectileHit(ProjectileHitEvent event) {
-        if (event.getEntity() instanceof Arrow) {
-            if (event.getEntity().getShooter() instanceof Player) {
-                final Player shooter = (Player) event.getEntity().getShooter();
-                final PlayerData shooterData = PlayerData.getByUuid(shooter.getUniqueId());
-
-                if (shooterData.isInMatch()) {
-                    shooterData.getMatch().getEntities().add(event.getEntity());
-                }
-            }
-        }
-    }
-
-    @EventHandler
-    public void onProjectileHitEvent(ProjectileHitEvent event) {
-        if (event.getEntity() instanceof Arrow) {
-            if (event.getEntity().getShooter() instanceof Player) {
-                final Player shooter = (Player) event.getEntity().getShooter();
-                final PlayerData shooterData = PlayerData.getByUuid(shooter.getUniqueId());
-
-                if (shooterData.isInMatch()) {
-                    shooterData.getMatch().getMatchPlayer(shooter).handleHit();
-                }
-            }
-        }
-    }
-
-    @EventHandler
-    public void onPotionSplash(PotionSplashEvent event) {
-        if (event.getPotion().getShooter() instanceof Player) {
-            final Player shooter = (Player) event.getPotion().getShooter();
-            final PlayerData shooterData = PlayerData.getByUuid(shooter.getUniqueId());
-
-            if (shooterData.isInMatch()) {
-                if (event.getIntensity(shooter) < 0.6D) {
-                    shooterData.getMatch().getMatchPlayer(shooter).incrementPotionsMissed();
-                }
             }
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
-        final PlayerData playerData = PlayerData.getByUuid(event.getPlayer().getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(event.getPlayer().getUniqueId());
 
         if (event.getMessage().startsWith("@") || event.getMessage().startsWith("!")) {
-            if (playerData.getParty() != null) {
+            if (praxiPlayer.getParty() != null) {
                 event.setCancelled(true);
-                playerData.getParty().broadcast(CC.GOLD + "[Party]" + CC.RESET + " " + event.getPlayer().getDisplayName() + CC.RESET + ": " + CC.strip(event.getMessage().substring(1)));
+                praxiPlayer.getParty().broadcast(Style.GOLD + "[Party]" + Style.RESET + " " + event.getPlayer().getDisplayName() + Style.RESET + ": " + Style.strip(event.getMessage().substring(1)));
                 return;
             }
         }
 
-        if (playerData.getKitEditor().isRenaming()) {
+        if (praxiPlayer.getKitEditor().isRenaming()) {
             event.setCancelled(true);
 
             if (event.getMessage().length() > 16) {
-                event.getPlayer().sendMessage(CC.RED + "A kit name cannot be more than 16 characters long.");
+                event.getPlayer().sendMessage(Style.RED + "A kit name cannot be more than 16 characters long.");
                 return;
             }
 
-            if (!playerData.isInMatch()) {
-                new KitManagementMenu(playerData.getKitEditor().getSelectedLadder()).openMenu(event.getPlayer());
+            if (!praxiPlayer.isInMatch()) {
+                new KitManagementMenu(praxiPlayer.getKitEditor().getSelectedLadder()).openMenu(event.getPlayer());
             }
 
-            playerData.getKitEditor().getSelectedKit().setName(event.getMessage());
-            playerData.getKitEditor().setActive(false);
-            playerData.getKitEditor().setRename(false);
-            playerData.getKitEditor().setSelectedKit(null);
+            praxiPlayer.getKitEditor().getSelectedKit().setName(event.getMessage());
+            praxiPlayer.getKitEditor().setActive(false);
+            praxiPlayer.getKitEditor().setRename(false);
+            praxiPlayer.getKitEditor().setSelectedKit(null);
         }
     }
 
     @EventHandler
     public void onAsyncPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
-        PlayerData playerData = new PlayerData(event.getUniqueId(), null);
+        PraxiPlayer praxiPlayer = new PraxiPlayer(event.getUniqueId(), null);
 
-        playerData.setName(event.getName());
-        playerData.load();
+        praxiPlayer.setName(event.getName());
+        praxiPlayer.load();
 
-        if (!playerData.isLoaded()) {
+        if (!praxiPlayer.isLoaded()) {
             event.setLoginResult(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
             event.setKickMessage(ChatColor.RED + "Failed to load your profile. Try again later.");
             return;
         }
 
-        PlayerData.getPlayers().put(event.getUniqueId(), playerData);
+        PraxiPlayer.getPlayers().put(event.getUniqueId(), praxiPlayer);
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         event.setJoinMessage(null);
 
-        PlayerData playerData = PlayerData.getByUuid(event.getPlayer().getUniqueId());
+        event.getPlayer().sendMessage(new String[]{
+                Style.getBorderLine(),
+                "",
+                Style.center(Style.PRIMARY + "Welcome to " + Style.SECONDARY + Style.BOLD + "MineXD Practice" + Style.PRIMARY + "!"),
+                "",
+                Style.center(Style.PRIMARY + "Follow our twitter " + Style.SECONDARY + "@MineXD" + Style.PRIMARY + " for updates and giveaways."),
+                "",
+                Style.getBorderLine()
+        });
 
         PlayerUtil.spawn(event.getPlayer());
-        playerData.loadLayout();
+
+        PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(event.getPlayer().getUniqueId());
+        praxiPlayer.loadLayout();
 
         Bukkit.getOnlinePlayers().forEach(player -> {
             player.hidePlayer(event.getPlayer());
             event.getPlayer().hidePlayer(player);
-        });
-
-        event.getPlayer().sendMessage(new String[]{
-                CC.HORIZONTAL_SEPARATOR,
-                "",
-                CC.YELLOW + " Welcome to " + CC.GOLD + "MineXD" + CC.YELLOW + "!",
-                "",
-                CC.
-                "",
-                CC.HORIZONTAL_SEPARATOR
         });
     }
 
@@ -239,30 +169,30 @@ public class PlayerListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         event.setQuitMessage(null);
 
-        final PlayerData playerData = PlayerData.getPlayers().remove(event.getPlayer().getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getPlayers().remove(event.getPlayer().getUniqueId());
 
-        if (playerData.getParty() != null) {
-            if (playerData.getParty().isLeader(event.getPlayer())) {
-                playerData.getParty().disband();
+        if (praxiPlayer.getParty() != null) {
+            if (praxiPlayer.getParty().isLeader(event.getPlayer())) {
+                praxiPlayer.getParty().disband();
             } else {
-                playerData.getParty().leave(event.getPlayer(), false);
+                praxiPlayer.getParty().leave(event.getPlayer(), false);
             }
         }
 
-        TaskUtil.runAsync(playerData::save);
+        TaskUtil.runAsync(praxiPlayer::save);
 
-        if (playerData.isInMatch()) {
-            playerData.getMatch().handleDeath(event.getPlayer(), null, true);
+        if (praxiPlayer.isInMatch()) {
+            praxiPlayer.getMatch().handleDeath(event.getPlayer(), null, true);
         }
 
-        if (playerData.isInQueue()) {
-            Queue queue = Queue.getByUuid(playerData.getQueuePlayer().getQueueUuid());
+        if (praxiPlayer.isInQueue()) {
+            Queue queue = Queue.getByUuid(praxiPlayer.getQueuePlayer().getQueueUuid());
 
             if (queue == null) {
                 return;
             }
 
-            queue.removePlayer(playerData.getQueuePlayer());
+            queue.removePlayer(praxiPlayer.getQueuePlayer());
         }
     }
 
@@ -270,19 +200,19 @@ public class PlayerListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getItem() != null && event.getAction().name().contains("RIGHT")) {
             final Player player = event.getPlayer();
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            if (playerData.isInMatch()) {
+            if (praxiPlayer.isInMatch()) {
                 if (event.getItem().hasItemMeta() && event.getItem().getItemMeta().hasDisplayName()) {
                     if (event.getItem().equals(Kit.DEFAULT_KIT)) {
                         event.setCancelled(true);
 
-                        final Kit kit = playerData.getMatch().getLadder().getDefaultKit();
+                        final Kit kit = praxiPlayer.getMatch().getLadder().getDefaultKit();
 
                         player.getInventory().setArmorContents(kit.getArmor());
                         player.getInventory().setContents(kit.getContents());
                         player.updateInventory();
-                        player.sendMessage(CC.YELLOW + "You have been given the" + CC.AQUA + " Default " + CC.YELLOW + "kit.");
+                        player.sendMessage(Style.YELLOW + "You have been given the" + Style.AQUA + " Default " + Style.YELLOW + "kit.");
                         return;
                     }
                 }
@@ -293,7 +223,7 @@ public class PlayerListener implements Listener {
                     if (displayName.startsWith("Kit: ")) {
                         final String kitName = displayName.replace("Kit: ", "");
 
-                        for (NamedKit kit : playerData.getKits(playerData.getMatch().getLadder())) {
+                        for (NamedKit kit : praxiPlayer.getKits(praxiPlayer.getMatch().getLadder())) {
                             if (kit != null) {
                                 if (ChatColor.stripColor(kit.getName()).equals(kitName)) {
                                     event.setCancelled(true);
@@ -301,7 +231,7 @@ public class PlayerListener implements Listener {
                                     player.getInventory().setArmorContents(kit.getArmor());
                                     player.getInventory().setContents(kit.getContents());
                                     player.updateInventory();
-                                    player.sendMessage(CC.YELLOW + "You have been given the " + CC.AQUA + kit.getName() + CC.YELLOW + " kit.");
+                                    player.sendMessage(Style.YELLOW + "You have been given the " + Style.AQUA + kit.getName() + Style.YELLOW + " kit.");
                                     return;
                                 }
                             }
@@ -310,34 +240,34 @@ public class PlayerListener implements Listener {
                 }
 
                 if (event.getItem().getType() == Material.ENDER_PEARL || (event.getItem().getType() == Material.POTION && event.getItem().getDurability() >= 16000)) {
-                    if (playerData.isInMatch() && playerData.getMatch().isStarting()) {
+                    if (praxiPlayer.isInMatch() && praxiPlayer.getMatch().isStarting()) {
                         event.setCancelled(true);
                         return;
                     }
                 }
 
                 if (event.getItem().getType() == Material.ENDER_PEARL && event.getClickedBlock() == null) {
-                    if (!playerData.isInMatch() || (playerData.isInMatch() && !playerData.getMatch().isFighting())) {
+                    if (!praxiPlayer.isInMatch() || (praxiPlayer.isInMatch() && !praxiPlayer.getMatch().isFighting())) {
                         event.setCancelled(true);
                         return;
                     }
 
-                    if (playerData.getMatch().isStarting()) {
+                    if (praxiPlayer.getMatch().isStarting()) {
                         event.setCancelled(true);
                         return;
                     }
 
-                    if (playerData.isOnEnderpearlCooldown()) {
-                        final String time = TimeUtil.formatSeconds(playerData.getEnderpearlCooldown().getRemaining());
+                    if (praxiPlayer.isOnEnderpearlCooldown()) {
+                        final String time = TimeUtil.millisToSeconds(praxiPlayer.getEnderpearlCooldown().getRemaining());
 
                         event.setCancelled(true);
-                        player.sendMessage(CC.RED + "You cannot enderpearl for another " + CC.BOLD + time + CC.RED + " seconds.");
+                        player.sendMessage(Style.RED + "You cannot enderpearl for another " + Style.BOLD + time + Style.RED + " seconds.");
                     } else {
-                        playerData.setEnderpearlCooldown(new Cooldown(16_000));
+                        praxiPlayer.setEnderpearlCooldown(new Cooldown(16_000));
                     }
                 }
             } else {
-                HotbarItem hotbarItem = PlayerHotbar.fromItemStack(event.getItem());
+                PlayerHotbar.HotbarItem hotbarItem = PlayerHotbar.fromItemStack(event.getItem());
 
                 if (hotbarItem == null) {
                     return;
@@ -347,23 +277,23 @@ public class PlayerListener implements Listener {
 
                 switch (hotbarItem) {
                     case QUEUE_JOIN_RANKED: {
-                        if (playerData.getState() == PlayerState.IN_LOBBY) {
+                        if (praxiPlayer.getState() == PlayerState.IN_LOBBY) {
                             new QueueJoinMenu(true).openMenu(event.getPlayer());
                         }
                     }
                     break;
                     case QUEUE_JOIN_UNRANKED: {
-                        if (playerData.getState() == PlayerState.IN_LOBBY) {
+                        if (praxiPlayer.getState() == PlayerState.IN_LOBBY) {
                             new QueueJoinMenu(false).openMenu(event.getPlayer());
                         }
                     }
                     break;
                     case QUEUE_LEAVE: {
-                        if (playerData.isInQueue()) {
-                            Queue queue = Queue.getByUuid(playerData.getQueuePlayer().getQueueUuid());
+                        if (praxiPlayer.isInQueue()) {
+                            Queue queue = Queue.getByUuid(praxiPlayer.getQueuePlayer().getQueueUuid());
 
                             if (queue != null) {
-                                queue.removePlayer(playerData.getQueuePlayer());
+                                queue.removePlayer(praxiPlayer.getQueuePlayer());
                             }
                         }
                     }
@@ -397,7 +327,7 @@ public class PlayerListener implements Listener {
                     }
                     break;
                     case KIT_EDITOR: {
-                        if (playerData.getState() == PlayerState.IN_LOBBY) {
+                        if (praxiPlayer.getState() == PlayerState.IN_LOBBY) {
                             new SelectLadderKitMenu().openMenu(event.getPlayer());
                         }
                     }
@@ -415,9 +345,9 @@ public class PlayerListener implements Listener {
     public void onPlayerDeath(PlayerDeathEvent event) {
         event.setDeathMessage(null);
 
-        final PlayerData playerData = PlayerData.getByUuid(event.getEntity().getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(event.getEntity().getUniqueId());
 
-        if (playerData.isInMatch()) {
+        if (praxiPlayer.isInMatch()) {
             final List<Item> entities = new ArrayList<>();
 
             event.getDrops().forEach(itemStack -> {
@@ -425,10 +355,8 @@ public class PlayerListener implements Listener {
             });
             event.getDrops().clear();
 
-            EntityUtil.hideEntitiesForAllExcluding(playerData.getMatch().getInvolvedPlayers(), entities);
-
-            playerData.getMatch().getEntities().addAll(entities);
-            playerData.getMatch().handleDeath(event.getEntity(), event.getEntity().getKiller(), false);
+            praxiPlayer.getMatch().getEntities().addAll(entities);
+            praxiPlayer.getMatch().handleDeath(event.getEntity(), event.getEntity().getKiller(), false);
         }
     }
 
@@ -436,21 +364,21 @@ public class PlayerListener implements Listener {
     public void onPlayerRespawn(PlayerRespawnEvent event) {
         event.setRespawnLocation(event.getPlayer().getLocation());
 
-        final PlayerData playerData = PlayerData.getByUuid(event.getPlayer().getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(event.getPlayer().getUniqueId());
 
-        if (playerData.isInMatch()) {
-            playerData.getMatch().handleRespawn(event.getPlayer());
+        if (praxiPlayer.isInMatch()) {
+            praxiPlayer.getMatch().handleRespawn(event.getPlayer());
         }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
-        final PlayerData playerData = PlayerData.getByUuid(event.getPlayer().getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(event.getPlayer().getUniqueId());
 
-        if (playerData.isInMatch()) {
-            final Match match = playerData.getMatch();
+        if (praxiPlayer.isInMatch()) {
+            final Match match = praxiPlayer.getMatch();
 
-            if (match.getLadder().isBuild() && playerData.getMatch().isFighting()) {
+            if (match.getLadder().isBuild() && praxiPlayer.getMatch().isFighting()) {
                 if (match.getLadder().isSpleef()) {
                     event.setCancelled(true);
                     return;
@@ -462,7 +390,7 @@ public class PlayerListener implements Listener {
                 final int z = (int) event.getBlockPlaced().getLocation().getZ();
 
                 if (y > arena.getMaxBuildHeight()) {
-                    event.getPlayer().sendMessage(CC.RED + "You have reached the maximum build height.");
+                    event.getPlayer().sendMessage(Style.RED + "You have reached the maximum build height.");
                     event.setCancelled(true);
                     return;
                 }
@@ -484,12 +412,12 @@ public class PlayerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onBucketEmpty(PlayerBucketEmptyEvent event) {
-        final PlayerData playerData = PlayerData.getByUuid(event.getPlayer().getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(event.getPlayer().getUniqueId());
 
-        if (playerData.isInMatch()) {
-            final Match match = playerData.getMatch();
+        if (praxiPlayer.isInMatch()) {
+            final Match match = praxiPlayer.getMatch();
 
-            if (match.getLadder().isBuild() && playerData.getMatch().isFighting()) {
+            if (match.getLadder().isBuild() && praxiPlayer.getMatch().isFighting()) {
                 final Arena arena = match.getArena();
                 final Block block = event.getBlockClicked().getRelative(event.getBlockFace());
                 final int x = (int) block.getLocation().getX();
@@ -497,7 +425,7 @@ public class PlayerListener implements Listener {
                 final int z = (int) block.getLocation().getZ();
 
                 if (y > arena.getMaxBuildHeight()) {
-                    event.getPlayer().sendMessage(CC.RED + "You have reached the maximum build height.");
+                    event.getPlayer().sendMessage(Style.RED + "You have reached the maximum build height.");
                     event.setCancelled(true);
                     return;
                 }
@@ -519,12 +447,12 @@ public class PlayerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
-        final PlayerData playerData = PlayerData.getByUuid(event.getPlayer().getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(event.getPlayer().getUniqueId());
 
-        if (playerData.isInMatch()) {
-            final Match match = playerData.getMatch();
+        if (praxiPlayer.isInMatch()) {
+            final Match match = praxiPlayer.getMatch();
 
-            if (match.getLadder().isBuild() && playerData.getMatch().isFighting()) {
+            if (match.getLadder().isBuild() && praxiPlayer.getMatch().isFighting()) {
                 if (match.getLadder().isSpleef()) {
                     if (event.getBlock().getType() == Material.SNOW_BLOCK || event.getBlock().getType() == Material.SNOW) {
                         match.getChangedBlocks().add(event.getBlock().getState());
@@ -548,168 +476,17 @@ public class PlayerListener implements Listener {
         }
     }
 
-    @EventHandler
-    public void onBlockFromTo(BlockFromToEvent event) {
-        final int x = event.getBlock().getX();
-        final int y = event.getBlock().getY();
-        final int z = event.getBlock().getZ();
-
-        Arena foundArena = null;
-
-        for (Arena arena : Arena.getArenas()) {
-            if (!(arena.getType() == ArenaType.STANDALONE || arena.getType() == ArenaType.DUPLICATE)) {
-                continue;
-            }
-
-            if (!arena.isActive()) {
-                continue;
-            }
-
-            if (x >= arena.getX1() && x <= arena.getX2() && y >= arena.getY1() && y <= arena.getY2() && z >= arena.getZ1() && z <= arena.getZ2()) {
-                foundArena = arena;
-                break;
-            }
-        }
-
-        if (foundArena == null) {
-            return;
-        }
-
-        for (Match match : Match.getMatches()) {
-            if (match.getArena().equals(foundArena)) {
-                if (match.isFighting()) {
-                    match.getPlacedBlocks().add(event.getToBlock().getLocation());
-                }
-
-                break;
-            }
-        }
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    public void onEntityDamage(EntityDamageEvent event) {
-        if (event.getEntity() instanceof Player) {
-            Player player = (Player) event.getEntity();
-            PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-
-            if (!playerData.isInMatch() || (playerData.isInMatch() && !playerData.getMatch().isFighting())) {
-                event.setCancelled(true);
-            }
-
-            if (playerData.isInMatch()) {
-                if (playerData.getMatch().isTeamMatch()) {
-                    if (!playerData.getMatch().getMatchPlayer(player).isAlive()) {
-                        event.setCancelled(true);
-                        return;
-                    }
-                }
-
-                if (playerData.getMatch().getLadder().isSumo() || playerData.getMatch().getLadder().isSpleef()) {
-                    event.setDamage(0);
-                    player.setHealth(20.0);
-                    player.updateInventory();
-                }
-            }
-
-            if (event.getCause() == EntityDamageEvent.DamageCause.VOID) {
-                PlayerUtil.spawn(player);
-            }
-        }
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOW)
-    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        final Player attacker = BukkitUtil.getDamager(event);
-
-        if (event.getEntity() instanceof Player && attacker != null) {
-            final PlayerData attackerData = PlayerData.getByUuid(attacker.getUniqueId());
-
-            if (attackerData.isSpectating()) {
-                event.setCancelled(true);
-                return;
-            }
-
-            if (!attackerData.isInMatch()) {
-                event.setCancelled(true);
-                return;
-            }
-
-            final Match match = attackerData.getMatch();
-            final Player damaged = (Player) event.getEntity();
-            final PlayerData damagedData = PlayerData.getByUuid(damaged.getUniqueId());
-
-            if (damagedData.isInMatch()) {
-                if (match.getMatchId().equals(damagedData.getMatch().getMatchId())) {
-                    if (!match.getMatchPlayer(attacker).isAlive()) {
-                        event.setCancelled(true);
-                        return;
-                    }
-
-                    if (match.isSoloMatch()) {
-                        attackerData.getMatch().getMatchPlayer(attacker).handleHit();
-                        damagedData.getMatch().getMatchPlayer(damaged).resetCombo();
-
-                        if (event.getDamager() instanceof Arrow) {
-                            double health = Math.ceil(damaged.getHealth() - event.getFinalDamage()) / 2.0D;
-
-                            attacker.sendMessage(CC.GOLD + "You shot " + CC.AQUA + damaged.getName() + CC.GOLD + "!" + CC.GRAY + " (" + CC.RED + health + CC.DARK_RED + " " + StringEscapeUtils.unescapeJava("\u2764") + CC.GRAY + ")");
-                        }
-                    } else if (match.isTeamMatch()) {
-                        final MatchTeam attackerTeam = match.getTeam(attacker);
-                        final MatchTeam damagedTeam = match.getTeam(damaged);
-
-                        if (attackerTeam == null || damagedTeam == null) {
-                            event.setCancelled(true);
-                        } else {
-                            if (attackerTeam.equals(damagedTeam)) {
-                                event.setCancelled(true);
-                            } else {
-                                attackerData.getMatch().getMatchPlayer(attacker).handleHit();
-                                damagedData.getMatch().getMatchPlayer(damaged).resetCombo();
-
-                                if (event.getDamager() instanceof Arrow) {
-                                    double health = Math.ceil(damaged.getHealth() - event.getFinalDamage()) / 2.0D;
-
-                                    attacker.sendMessage(CC.GOLD + "You shot " + CC.AQUA + damaged.getName() + CC.GOLD + "!" + CC.GRAY + " (" + CC.RED + health + CC.DARK_RED + " " + StringEscapeUtils.unescapeJava("\u2764") + CC.GRAY + ")");
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    @EventHandler
-    public void onFoodLevelChange(FoodLevelChangeEvent event) {
-        if (event.getEntity() instanceof Player) {
-            final Player player = (Player) event.getEntity();
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
-
-            if (!playerData.isInMatch() || (playerData.isInMatch() && !playerData.getMatch().isFighting())) {
-                event.setCancelled(true);
-            } else {
-                if (event.getFoodLevel() >= 20) {
-                    event.setFoodLevel(20);
-                    player.setSaturation(20);
-                } else {
-                    event.setCancelled(Nucleus.RANDOM.nextInt(100) > 25);
-                }
-            }
-        }
-    }
-
     @EventHandler(ignoreCancelled = true)
     public void onPlayerPickupItem(PlayerPickupItemEvent event) {
-        final PlayerData playerData = PlayerData.getByUuid(event.getPlayer().getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(event.getPlayer().getUniqueId());
 
-        if (playerData.isInMatch()) {
-            if (!playerData.getMatch().getMatchPlayer(event.getPlayer()).isAlive()) {
+        if (praxiPlayer.isInMatch()) {
+            if (!praxiPlayer.getMatch().getMatchPlayer(event.getPlayer()).isAlive()) {
                 event.setCancelled(true);
                 return;
             }
 
-            Iterator<Entity> entityIterator = playerData.getMatch().getEntities().iterator();
+            Iterator<Entity> entityIterator = praxiPlayer.getMatch().getEntities().iterator();
 
             while (entityIterator.hasNext()) {
                 Entity entity = entityIterator.next();
@@ -721,30 +498,28 @@ public class PlayerListener implements Listener {
             }
 
             event.setCancelled(true);
-        } else if (playerData.isSpectating()) {
+        } else if (praxiPlayer.isSpectating()) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerDropItem(PlayerDropItemEvent event) {
-        PlayerData playerData = PlayerData.getByUuid(event.getPlayer().getUniqueId());
+        PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(event.getPlayer().getUniqueId());
 
         if (event.getItemDrop().getItemStack().getType() == Material.BOOK) {
             event.getItemDrop().remove();
             return;
         }
 
-        if (playerData.isInMatch()) {
-            if (playerData.getMatch() != null) {
+        if (praxiPlayer.isInMatch()) {
+            if (praxiPlayer.getMatch() != null) {
                 if (event.getItemDrop().getItemStack().getType() == Material.GLASS_BOTTLE) {
                     event.getItemDrop().remove();
                     return;
                 }
 
-                EntityUtil.hideEntitiesForAllExcluding(playerData.getMatch().getInvolvedPlayers(), Collections.singletonList(event.getItemDrop()));
-
-                playerData.getMatch().getEntities().add(event.getItemDrop());
+                praxiPlayer.getMatch().getEntities().add(event.getItemDrop());
             }
         } else {
             event.setCancelled(true);
@@ -753,31 +528,29 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player)) {
-            return;
-        }
+        if (event.getWhoClicked() instanceof Player) {
+            final Player player = (Player) event.getWhoClicked();
+            final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-        final Player player = (Player) event.getWhoClicked();
-        final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            if (!praxiPlayer.isInMatch() && player.getGameMode() == GameMode.SURVIVAL) {
+                final Inventory clicked = event.getClickedInventory();
 
-        if (!playerData.isInMatch() && player.getGameMode() == GameMode.SURVIVAL) {
-            final Inventory clicked = event.getClickedInventory();
-
-            if (playerData.getKitEditor().isActive()) {
-                if (clicked == null) {
-                    event.setCancelled(true);
-                    event.setCursor(null);
-                    player.updateInventory();
-                } else if (clicked.equals(player.getOpenInventory().getTopInventory())) {
-                    if (event.getCursor().getType() != Material.AIR && event.getCurrentItem().getType() == Material.AIR || event.getCursor().getType() != Material.AIR && event.getCurrentItem().getType() != Material.AIR) {
+                if (praxiPlayer.getKitEditor().isActive()) {
+                    if (clicked == null) {
                         event.setCancelled(true);
                         event.setCursor(null);
                         player.updateInventory();
+                    } else if (clicked.equals(player.getOpenInventory().getTopInventory())) {
+                        if (event.getCursor().getType() != Material.AIR && event.getCurrentItem().getType() == Material.AIR || event.getCursor().getType() != Material.AIR && event.getCurrentItem().getType() != Material.AIR) {
+                            event.setCancelled(true);
+                            event.setCursor(null);
+                            player.updateInventory();
+                        }
                     }
-                }
-            } else {
-                if (clicked != null && clicked.equals(player.getInventory())) {
-                    event.setCancelled(true);
+                } else {
+                    if (clicked != null && clicked.equals(player.getInventory())) {
+                        event.setCancelled(true);
+                    }
                 }
             }
         }
@@ -785,9 +558,9 @@ public class PlayerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerItemDamage(PlayerItemDamageEvent event) {
-        final PlayerData playerData = PlayerData.getByUuid(event.getPlayer().getUniqueId());
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(event.getPlayer().getUniqueId());
 
-        if (playerData.getState() == PlayerState.IN_LOBBY) {
+        if (praxiPlayer.getState() == PlayerState.IN_LOBBY) {
             event.setCancelled(true);
         }
     }

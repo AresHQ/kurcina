@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 
 import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.menu.Menu;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.ItemBuilder;
 
 import org.bukkit.Material;
@@ -22,7 +22,7 @@ public class BackButton extends Button {
 
     @Override
     public ItemStack getButtonItem(Player player) {
-        return new ItemBuilder(Material.REDSTONE).name(CC.RED + CC.BOLD + "Back").lore(Arrays.asList(CC.RED + "Click here to return to", CC.RED + "the previous menu.")).build();
+        return new ItemBuilder(Material.REDSTONE).name(Style.RED + Style.BOLD + "Back").lore(Arrays.asList(Style.RED + "Click here to return to", Style.RED + "the previous menu.")).build();
     }
 
     @Override

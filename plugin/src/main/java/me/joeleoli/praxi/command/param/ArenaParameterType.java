@@ -1,7 +1,7 @@
 package me.joeleoli.praxi.command.param;
 
 import me.joeleoli.nucleus.command.param.ParameterType;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.praxi.arena.Arena;
 
 import org.apache.commons.lang.StringUtils;
@@ -17,7 +17,7 @@ public class ArenaParameterType implements ParameterType<Arena> {
         Arena arena = Arena.getByName(source);
 
         if (arena == null) {
-            sender.sendMessage(CC.RED + "An arena with that name does not exist.");
+            sender.sendMessage(Style.RED + "An arena with that name does not exist.");
             return null;
         }
 

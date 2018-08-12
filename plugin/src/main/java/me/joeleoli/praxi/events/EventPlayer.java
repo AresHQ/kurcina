@@ -1,12 +1,14 @@
-package me.joeleoli.praxi.event;
+package me.joeleoli.praxi.events;
 
 import lombok.Getter;
+import lombok.Setter;
 
 import me.joeleoli.nucleus.player.PlayerInfo;
 
 import org.bukkit.entity.Player;
 
 @Getter
+@Setter
 public class EventPlayer extends PlayerInfo {
 
     public EventPlayer(Player player) {

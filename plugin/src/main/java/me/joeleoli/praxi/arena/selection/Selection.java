@@ -1,6 +1,6 @@
 package me.joeleoli.praxi.arena.selection;
 
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.praxi.Praxi;
 import me.joeleoli.praxi.cuboid.Cuboid;
 
@@ -31,10 +31,10 @@ public class Selection {
         ItemStack itemStack = new ItemStack(Material.GOLD_AXE);
         ItemMeta itemMeta = itemStack.getItemMeta();
 
-        itemMeta.setDisplayName(CC.GOLD + CC.BOLD + "Selection Wand");
+        itemMeta.setDisplayName(Style.GOLD + Style.BOLD + "Selection Wand");
         itemMeta.setLore(Arrays.asList(
-                CC.YELLOW + "Left-click to set position 1.",
-                CC.YELLOW + "Right-click to set position 2."
+                Style.YELLOW + "Left-click to set position 1.",
+                Style.YELLOW + "Right-click to set position 2."
         ));
         itemStack.setItemMeta(itemMeta);
 
@@ -72,7 +72,7 @@ public class Selection {
      * Selections are stored in the player's metadata. This method removes the need
      * to active Bukkit Metadata API calls all over the place.
      * <p>
-     * This method can be modified structurally as needed, the plugin only access Selection objects
+     * This method can be modified structurally as needed, the plugin only aStyle.ss Selection objects
      * via this method.
      *
      * @param player the player for whom to grab the Selection object for

@@ -2,9 +2,10 @@ package me.joeleoli.praxi.command;
 
 import me.joeleoli.nucleus.command.Command;
 import me.joeleoli.nucleus.command.param.Parameter;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.uuid.UUIDCache;
-import me.joeleoli.praxi.player.PlayerData;
+
+import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.praxi.player.gui.PlayerSettingsMenu;
 
 import org.bukkit.entity.Player;
@@ -25,31 +26,31 @@ public class PlayerCommands {
         final UUID uuid = UUIDCache.getUuid(name);
 
         if (uuid == null) {
-            player.sendMessage(CC.RED + "Couldn't find a player with the name " + CC.RESET + name + CC.RED + ".");
+            player.sendMessage(Style.RED + "Couldn't find a player with the name " + Style.RESET + name + Style.RED + ".");
             return;
         }
 
-        final PlayerData playerData = PlayerData.getByUuid(uuid);
+        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(uuid);
 
-        if (!playerData.isLoaded()) {
-            playerData.load();
+        if (!praxiPlayer.isLoaded()) {
+            praxiPlayer.load();
         }
 
-        if (playerData.getName() != null) {
-            if (playerData.getName().equalsIgnoreCase(name)) {
-                name = playerData.getName();
+        if (praxiPlayer.getName() != null) {
+            if (praxiPlayer.getName().equalsIgnoreCase(name)) {
+                name = praxiPlayer.getName();
             }
         }
 
         final List<String> messages = new ArrayList<>();
 
-        playerData.getStatistics().getLadders().forEach((key, value) -> {
-            messages.add(CC.YELLOW + key + CC.GRAY + ": " + CC.PINK + value.getElo() + " ELO");
+        praxiPlayer.getStatistics().getLadders().forEach((key, value) -> {
+            messages.add(Style.YELLOW + key + Style.GRAY + ": " + Style.PINK + value.getElo() + " ELO");
         });
 
-        messages.add(0, CC.GOLD + CC.BOLD + name + "'s Statistics");
-        messages.add(0, CC.HORIZONTAL_SEPARATOR);
-        messages.add(CC.HORIZONTAL_SEPARATOR);
+        messages.add(0, Style.GOLD + Style.BOLD + name + "'s Statistics");
+        messages.add(0, Style.getBorderLine());
+        messages.add(Style.getBorderLine());
         messages.forEach(player::sendMessage);
     }
 

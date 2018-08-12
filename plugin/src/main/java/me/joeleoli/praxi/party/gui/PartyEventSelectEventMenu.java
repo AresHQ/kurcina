@@ -4,10 +4,10 @@ import lombok.AllArgsConstructor;
 
 import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.menu.Menu;
-import me.joeleoli.nucleus.util.CC;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.praxi.party.PartyEvent;
-import me.joeleoli.praxi.player.PlayerData;
+import me.joeleoli.praxi.player.PraxiPlayer;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -22,7 +22,7 @@ public class PartyEventSelectEventMenu extends Menu {
 
     @Override
     public String getTitle(Player player) {
-        return CC.BLUE + CC.BOLD + "Select an event...";
+        return Style.BLUE + Style.BOLD + "Select an events...";
     }
 
     @Override
@@ -43,24 +43,24 @@ public class PartyEventSelectEventMenu extends Menu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(this.partyEvent == PartyEvent.FFA ? Material.QUARTZ : Material.REDSTONE)
-                    .name(CC.GREEN + CC.BOLD + this.partyEvent.getName())
+                    .name(Style.GREEN + Style.BOLD + this.partyEvent.getName())
                     .lore(Arrays.asList(
                             "",
-                            CC.YELLOW + "Click here to select " + CC.GREEN + CC.BOLD + this.partyEvent.getName() + CC.YELLOW + "."
+                            Style.YELLOW + "Click here to select " + Style.GREEN + Style.BOLD + this.partyEvent.getName() + Style.YELLOW + "."
                     ))
                     .build();
         }
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarSlot) {
-            final PlayerData playerData = PlayerData.getByUuid(player.getUniqueId());
+            final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            if (playerData.getParty() == null) {
-                player.sendMessage(CC.RED + "You are not in a party.");
+            if (praxiPlayer.getParty() == null) {
+                player.sendMessage(Style.RED + "You are not in a party.");
                 return;
             }
 
-            playerData.getParty().setSelectedEvent(this.partyEvent);
+            praxiPlayer.getParty().setSelectedEvent(this.partyEvent);
 
             new PartyEventSelectLadderMenu().openMenu(player);
         }
