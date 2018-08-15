@@ -1,27 +1,27 @@
 package me.joeleoli.praxi.match;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import lombok.Getter;
+import lombok.Setter;
 import me.joeleoli.fairfight.FairFight;
-
 import me.joeleoli.nucleus.NucleusAPI;
 import me.joeleoli.nucleus.chat.ChatComponentBuilder;
 import me.joeleoli.nucleus.nametag.NameTagHandler;
-import me.joeleoli.nucleus.util.*;
-
+import me.joeleoli.nucleus.util.PlayerUtil;
+import me.joeleoli.nucleus.util.Style;
+import me.joeleoli.nucleus.util.TaskUtil;
+import me.joeleoli.nucleus.util.TimeUtil;
 import me.joeleoli.praxi.Praxi;
+import me.joeleoli.praxi.arena.Arena;
 import me.joeleoli.praxi.ladder.Ladder;
 import me.joeleoli.praxi.player.PlayerState;
-import me.joeleoli.praxi.arena.Arena;
 import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.ragespigot.RageSpigot;
-
-import lombok.Getter;
-import lombok.Setter;
-
 import net.md_5.bungee.api.chat.BaseComponent;
-
 import net.minecraft.server.v1_8_R3.EntityLightning;
 import net.minecraft.server.v1_8_R3.PacketPlayOutSpawnEntityWeather;
-
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -34,655 +34,669 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
-import java.util.*;
-
 @Getter
 public abstract class Match {
 
-    @Getter
-    protected static List<Match> matches = new ArrayList<>();
-    protected static final BaseComponent[] HOVER_TEXT = new ChatComponentBuilder(Style.GRAY + "Click to view this player's inventory.").create();
+	protected static final BaseComponent[] HOVER_TEXT =
+			new ChatComponentBuilder(Style.GRAY + "Click to view this player's inventory.").create();
+	@Getter
+	protected static List<Match> matches = new ArrayList<>();
+	private UUID matchId = UUID.randomUUID();
+	@Setter
+	private MatchState state = MatchState.STARTING;
+	private UUID queueId;
+	@Setter
+	private Ladder ladder;
+	private Arena arena;
+	private boolean ranked;
+	private List<MatchSnapshot> snapshots = new ArrayList<>();
+	private List<UUID> spectators = new ArrayList<>();
+	private List<Entity> entities = new ArrayList<>();
+	private List<Location> placedBlocks = new ArrayList<>();
+	private List<BlockState> changedBlocks = new ArrayList<>();
+	@Setter
+	private long startTimestamp;
 
-    private UUID matchId = UUID.randomUUID();
-    @Setter
-    private MatchState state = MatchState.STARTING;
-    private UUID queueId;
-    @Setter
-    private Ladder ladder;
-    private Arena arena;
-    private boolean ranked;
-    private List<MatchSnapshot> snapshots = new ArrayList<>();
-    private List<UUID> spectators = new ArrayList<>();
-    private List<Entity> entities = new ArrayList<>();
-    private List<Location> placedBlocks = new ArrayList<>();
-    private List<BlockState> changedBlocks = new ArrayList<>();
-    @Setter
-    private long startTimestamp;
+	public Match(Ladder ladder, Arena arena, boolean ranked) {
+		this(null, ladder, arena, ranked);
+	}
 
-    public Match(Ladder ladder, Arena arena, boolean ranked) {
-        this(null, ladder, arena, ranked);
-    }
+	public Match(UUID queueId, Ladder ladder, Arena arena, boolean ranked) {
+		this.queueId = queueId;
+		this.ladder = ladder;
+		this.arena = arena;
+		this.ranked = ranked;
 
-    public Match(UUID queueId, Ladder ladder, Arena arena, boolean ranked) {
-        this.queueId = queueId;
-        this.ladder = ladder;
-        this.arena = arena;
-        this.ranked = ranked;
+		matches.add(this);
+	}
 
-        matches.add(this);
-    }
+	public abstract boolean isDuel();
 
-    public abstract boolean isSoloMatch();
+	public abstract boolean isSoloMatch();
 
-    public abstract boolean isTeamMatch();
+	public abstract boolean isTeamMatch();
 
-    public abstract void onStart();
+	public abstract void onStart();
 
-    public abstract void onEnd();
+	public abstract void onEnd();
 
-    public abstract void onDeath(Player player, Player killer);
+	public abstract void onDeath(Player player, Player killer);
 
-    public abstract void onRespawn(Player player);
+	public abstract void onRespawn(Player player);
 
-    public abstract boolean canEnd();
+	public abstract boolean canEnd();
 
-    public abstract Player getWinningPlayer();
+	public abstract Player getWinningPlayer();
 
-    public abstract MatchTeam getWinningTeam();
+	public abstract MatchTeam getWinningTeam();
 
-    public abstract MatchPlayer getMatchPlayerA();
+	public abstract MatchPlayer getMatchPlayerA();
 
-    public abstract MatchPlayer getMatchPlayerB();
+	public abstract MatchPlayer getMatchPlayerB();
 
-    public abstract List<MatchPlayer> getMatchPlayers();
+	public abstract List<MatchPlayer> getMatchPlayers();
 
-    public abstract Player getPlayerA();
+	public abstract Player getPlayerA();
 
-    public abstract Player getPlayerB();
+	public abstract Player getPlayerB();
 
-    public abstract List<Player> getPlayers();
+	public abstract List<Player> getPlayers();
 
-    public abstract MatchTeam getTeamA();
+	public abstract MatchTeam getTeamA();
 
-    public abstract MatchTeam getTeamB();
+	public abstract MatchTeam getTeamB();
 
-    public abstract MatchTeam getTeam(MatchPlayer matchPlayer);
+	public abstract MatchTeam getTeam(MatchPlayer matchPlayer);
 
-    public abstract MatchTeam getTeam(Player player);
+	public abstract MatchTeam getTeam(Player player);
 
-    public abstract MatchPlayer getMatchPlayer(Player player);
+	public abstract MatchPlayer getMatchPlayer(Player player);
 
-    public abstract int getOpponentsLeft(Player player);
+	public abstract int getOpponentsLeft(Player player);
 
-    public abstract MatchTeam getOpponentTeam(MatchTeam matchTeam);
+	public abstract MatchTeam getOpponentTeam(MatchTeam matchTeam);
 
-    public abstract MatchTeam getOpponentTeam(Player player);
+	public abstract MatchTeam getOpponentTeam(Player player);
 
-    public abstract MatchPlayer getOpponentMatchPlayer(Player player);
+	public abstract MatchPlayer getOpponentMatchPlayer(Player player);
 
-    public abstract Player getOpponentPlayer(Player player);
+	public abstract Player getOpponentPlayer(Player player);
 
-    public abstract int getTotalRoundWins();
+	public abstract int getTotalRoundWins();
 
-    public abstract int getRoundWins(MatchPlayer matchPlayer);
+	public abstract int getRoundWins(MatchPlayer matchPlayer);
 
-    public abstract int getRoundWins(MatchTeam matchTeam);
+	public abstract int getRoundWins(MatchTeam matchTeam);
 
-    public abstract int getRoundsNeeded(MatchPlayer matchPlayer);
+	public abstract int getRoundsNeeded(MatchPlayer matchPlayer);
 
-    public abstract int getRoundsNeeded(MatchTeam matchTeam);
+	public abstract int getRoundsNeeded(MatchTeam matchTeam);
 
-    public boolean isMatchMakingMatch() {
-        return this.queueId != null;
-    }
+	public boolean isMatchMakingMatch() {
+		return this.queueId != null;
+	}
 
-    public boolean isStarting() {
-        return this.state == MatchState.STARTING;
-    }
+	public boolean isStarting() {
+		return this.state == MatchState.STARTING;
+	}
+
+	public boolean isFighting() {
+		return this.state == MatchState.FIGHTING;
+	}
+
+	public boolean isEnding() {
+		return this.state == MatchState.ENDING;
+	}
+
+	public void setupPlayers() {
+		if (this.isSoloMatch()) {
+			final MatchPlayer matchPlayerA = this.getMatchPlayerA();
+			final MatchPlayer matchPlayerB = this.getMatchPlayerB();
+
+			matchPlayerA.setAlive(true);
+			matchPlayerB.setAlive(true);
+
+			final Player playerA = matchPlayerA.toPlayer();
+			final Player playerB = matchPlayerB.toPlayer();
+
+			playerA.showPlayer(playerB);
+			playerB.showPlayer(playerA);
 
-    public boolean isFighting() {
-        return this.state == MatchState.FIGHTING;
-    }
+			if (this.arena.getSpawn1().getBlock().getType() == Material.AIR) {
+				playerA.teleport(this.arena.getSpawn1());
+			} else {
+				playerA.teleport(this.arena.getSpawn1().add(0, 2, 0));
+			}
+
+			if (this.arena.getSpawn2().getBlock().getType() == Material.AIR) {
+				playerB.teleport(this.arena.getSpawn2());
+			} else {
+				playerB.teleport(this.arena.getSpawn2().add(0, 2, 0));
+			}
+
+			NameTagHandler.addToTeam(playerA, playerB, ChatColor.RED, this.ladder.isBuild());
+			NameTagHandler.addToTeam(playerB, playerA, ChatColor.RED, this.ladder.isBuild());
+
+			PlayerUtil.reset(playerA);
+			PlayerUtil.reset(playerB);
+
+			playerA.setMaximumNoDamageTicks(this.ladder.getHitDelay());
+			playerB.setMaximumNoDamageTicks(this.ladder.getHitDelay());
+
+			if (this.ladder.isSumo()) {
+				FairFight.getInstance().getPlayerDataManager().getPlayerData(playerA).setAllowTeleport(true);
+				FairFight.getInstance().getPlayerDataManager().getPlayerData(playerB).setAllowTeleport(true);
+
+				playerA.setWalkSpeed(0.0F);
+				playerB.setWalkSpeed(0.0F);
+			} else {
+				for (ItemStack itemStack : PraxiPlayer.getByUuid(playerA.getUniqueId()).getKitItems(this.ladder)) {
+					playerA.getInventory().addItem(itemStack);
+				}
+
+				for (ItemStack itemStack : PraxiPlayer.getByUuid(playerB.getUniqueId()).getKitItems(this.ladder)) {
+					playerB.getInventory().addItem(itemStack);
+				}
+			}
+
+			if (this.ladder.getKbProfile() != null) {
+				playerA.setKnockbackProfile(
+						RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile()));
+				playerB.setKnockbackProfile(
+						RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile()));
+			}
+		} else if (this.isTeamMatch()) {
+			final MatchTeam teamA = this.getTeamA();
+			final MatchTeam teamB = this.getTeamB();
 
-    public boolean isEnding() {
-        return this.state == MatchState.ENDING;
-    }
+			for (MatchPlayer matchPlayer : teamA.getTeamPlayers()) {
+				if (!matchPlayer.isDisconnected()) {
+					matchPlayer.setAlive(true);
+				}
 
-    public void setupPlayers() {
-        if (this.isSoloMatch()) {
-            final MatchPlayer matchPlayerA = this.getMatchPlayerA();
-            final MatchPlayer matchPlayerB = this.getMatchPlayerB();
-
-            matchPlayerA.setAlive(true);
-            matchPlayerB.setAlive(true);
+				final Player player = matchPlayer.toPlayer();
 
-            final Player playerA = matchPlayerA.toPlayer();
-            final Player playerB = matchPlayerB.toPlayer();
+				if (player == null || !player.isOnline()) {
+					continue;
+				}
 
-            playerA.showPlayer(playerB);
-            playerB.showPlayer(playerA);
+				player.teleport(this.arena.getSpawn1());
 
-            if (this.arena.getSpawn1().getBlock().getType() == Material.AIR) {
-                playerA.teleport(this.arena.getSpawn1());
-            } else {
-                playerA.teleport(this.arena.getSpawn1().add(0, 2, 0));
-            }
+				for (Player member : teamA.getPlayers()) {
+					NameTagHandler.addToTeam(player, member, ChatColor.GREEN, this.ladder.isBuild());
+				}
 
-            if (this.arena.getSpawn2().getBlock().getType() == Material.AIR) {
-                playerB.teleport(this.arena.getSpawn2());
-            } else {
-                playerB.teleport(this.arena.getSpawn2().add(0, 2, 0));
-            }
+				for (Player enemy : teamB.getPlayers()) {
+					NameTagHandler.addToTeam(player, enemy, ChatColor.RED, this.ladder.isBuild());
+				}
+			}
+
+			for (MatchPlayer matchPlayer : teamB.getTeamPlayers()) {
+				if (!matchPlayer.isDisconnected()) {
+					matchPlayer.setAlive(true);
+				}
+
+				final Player player = matchPlayer.toPlayer();
 
-            NameTagHandler.addToTeam(playerA, playerB, ChatColor.RED, this.ladder.isBuild());
-            NameTagHandler.addToTeam(playerB, playerA, ChatColor.RED, this.ladder.isBuild());
-
-            PlayerUtil.reset(playerA);
-            PlayerUtil.reset(playerB);
+				if (player == null || !player.isOnline()) {
+					continue;
+				}
+
+				player.teleport(this.arena.getSpawn2());
+
+				for (Player member : teamB.getPlayers()) {
+					NameTagHandler.addToTeam(player, member, ChatColor.GREEN, this.ladder.isBuild());
+				}
+
+				for (Player enemy : teamA.getPlayers()) {
+					NameTagHandler.addToTeam(player, enemy, ChatColor.RED, this.ladder.isBuild());
+				}
+			}
+
+			final List<Player> players = this.getPlayers();
+
+			for (Player first : players) {
+				PlayerUtil.reset(first);
 
-            playerA.setMaximumNoDamageTicks(this.ladder.getHitDelay());
-            playerB.setMaximumNoDamageTicks(this.ladder.getHitDelay());
-
-            if (this.ladder.isSumo()) {
-                FairFight.getInstance().getPlayerDataManager().getPlayerData(playerA).setAllowTeleport(true);
-                FairFight.getInstance().getPlayerDataManager().getPlayerData(playerB).setAllowTeleport(true);
-
-                playerA.setWalkSpeed(0.0F);
-                playerB.setWalkSpeed(0.0F);
-            } else {
-                for (ItemStack itemStack : PraxiPlayer.getByUuid(playerA.getUniqueId()).getKitItems(this.ladder)) {
-                    playerA.getInventory().addItem(itemStack);
-                }
+				first.setMaximumNoDamageTicks(this.ladder.getHitDelay());
 
-                for (ItemStack itemStack : PraxiPlayer.getByUuid(playerB.getUniqueId()).getKitItems(this.ladder)) {
-                    playerB.getInventory().addItem(itemStack);
-                }
-            }
+				if (this.ladder.isSumo()) {
+					FairFight.getInstance().getPlayerDataManager().getPlayerData(first).setAllowTeleport(true);
+
+					first.setWalkSpeed(0.0F);
+				} else {
+					for (ItemStack itemStack : PraxiPlayer.getByUuid(first.getUniqueId()).getKitItems(this.ladder)) {
+						first.getInventory().addItem(itemStack);
+					}
+				}
+
+				if (this.ladder.getKbProfile() != null) {
+					first.setKnockbackProfile(
+							RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile()));
+				}
+
+				for (Player second : players) {
+					if (first.getUniqueId().equals(second.getUniqueId())) {
+						continue;
+					}
+
+					first.showPlayer(second);
+					second.showPlayer(first);
+				}
+			}
+		}
+	}
+
+	public void handleStart() {
+		this.setupPlayers();
+
+		this.state = MatchState.STARTING;
+		this.startTimestamp = -1;
+		this.arena.setActive(true);
 
-            if (this.ladder.getKbProfile() != null) {
-                playerA.setKnockbackProfile(RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile()));
-                playerB.setKnockbackProfile(RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile()));
-            }
-        } else if (this.isTeamMatch()) {
-            final MatchTeam teamA = this.getTeamA();
-            final MatchTeam teamB = this.getTeamB();
-
-            for (MatchPlayer matchPlayer : teamA.getTeamPlayers()) {
-                if (!matchPlayer.isDisconnected()) {
-                    matchPlayer.setAlive(true);
-                }
-
-                final Player player = matchPlayer.toPlayer();
-
-                if (player == null || !player.isOnline()) {
-                    continue;
-                }
-
-                player.teleport(this.arena.getSpawn1());
-
-                for (Player member : teamA.getPlayers()) {
-                    NameTagHandler.addToTeam(player, member, ChatColor.GREEN, this.ladder.isBuild());
-                }
-
-                for (Player enemy : teamB.getPlayers()) {
-                    NameTagHandler.addToTeam(player, enemy, ChatColor.RED, this.ladder.isBuild());
-                }
-            }
-
-            for (MatchPlayer matchPlayer : teamB.getTeamPlayers()) {
-                if (!matchPlayer.isDisconnected()) {
-                    matchPlayer.setAlive(true);
-                }
-
-                final Player player = matchPlayer.toPlayer();
-
-                if (player == null || !player.isOnline()) {
-                    continue;
-                }
-
-                player.teleport(this.arena.getSpawn2());
-
-                for (Player member : teamB.getPlayers()) {
-                    NameTagHandler.addToTeam(player, member, ChatColor.GREEN, this.ladder.isBuild());
-                }
-
-                for (Player enemy : teamA.getPlayers()) {
-                    NameTagHandler.addToTeam(player, enemy, ChatColor.RED, this.ladder.isBuild());
-                }
-            }
-
-            final List<Player> players = this.getPlayers();
-
-            for (Player first : players) {
-                PlayerUtil.reset(first);
-
-                first.setMaximumNoDamageTicks(this.ladder.getHitDelay());
-
-                if (this.ladder.isSumo()) {
-                    FairFight.getInstance().getPlayerDataManager().getPlayerData(first).setAllowTeleport(true);
-
-                    first.setWalkSpeed(0.0F);
-                } else {
-                    for (ItemStack itemStack : PraxiPlayer.getByUuid(first.getUniqueId()).getKitItems(this.ladder)) {
-                        first.getInventory().addItem(itemStack);
-                    }
-                }
-
-                if (this.ladder.getKbProfile() != null) {
-                    first.setKnockbackProfile(RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile()));
-                }
-
-                for (Player second : players) {
-                    if (first.getUniqueId().equals(second.getUniqueId())) {
-                        continue;
-                    }
-
-                    first.showPlayer(second);
-                    second.showPlayer(first);
-                }
-            }
-        }
-    }
-
-    public void handleStart() {
-        this.setupPlayers();
-
-        this.state = MatchState.STARTING;
-        this.startTimestamp = -1;
-        this.arena.setActive(true);
-
-        this.onStart();
-
-        TaskUtil.runTimer(new MatchStartRunnable(this), 20L, 20L);
-    }
-
-    private void handleEnd() {
-        this.state = MatchState.ENDING;
-
-        this.onEnd();
-
-        if (this.isSoloMatch()) {
-            final Player playerA = this.getPlayerA();
-            final Player playerB = this.getPlayerB();
-
-            playerA.hidePlayer(playerB);
-            playerB.hidePlayer(playerA);
-
-            for (MatchPlayer matchPlayer : new MatchPlayer[]{this.getMatchPlayerA(), this.getMatchPlayerB()}) {
-                if (matchPlayer.isAlive()) {
-                    final Player player = matchPlayer.toPlayer();
-
-                    if (player != null) {
-                        player.setFireTicks(0);
-                        player.updateInventory();
-
-                        if (matchPlayer.isAlive()) {
-                            MatchSnapshot snapshot = new MatchSnapshot(matchPlayer);
-
-                            snapshot.setSwitchTo(this.getOpponentMatchPlayer(player));
-
-                            this.snapshots.add(snapshot);
-                        }
-                    }
-                }
-            }
-        } else if (this.isTeamMatch()) {
-            for (MatchPlayer firstMatchPlayer : this.getMatchPlayers()) {
-                if (firstMatchPlayer.isDisconnected()) {
-                    continue;
-                }
-
-                final Player player = firstMatchPlayer.toPlayer();
-
-                if (player != null) {
-                    for (MatchPlayer secondMatchPlayer : this.getMatchPlayers()) {
-                        if (secondMatchPlayer.isDisconnected()) {
-                            continue;
-                        }
-
-                        if (secondMatchPlayer.getUuid().equals(player.getUniqueId())) {
-                            continue;
-                        }
-
-                        final Player secondPlayer = secondMatchPlayer.toPlayer();
-
-                        if (secondPlayer == null) {
-                            continue;
-                        }
-
-                        player.hidePlayer(secondPlayer);
-                    }
-
-                    player.setFireTicks(0);
-                    player.updateInventory();
-
-                    if (firstMatchPlayer.isAlive()) {
-                        this.snapshots.add(new MatchSnapshot(firstMatchPlayer));
-                    }
-                }
-            }
-        }
-
-        this.getSpectators().forEach(this::removeSpectator);
-        this.entities.forEach(Entity::remove);
-        this.snapshots.forEach(matchInventory -> {
-            matchInventory.setCreated(System.currentTimeMillis());
-            MatchSnapshot.getCache().put(matchInventory.getMatchPlayer().getUuid(), matchInventory);
-        });
-
-        new MatchResetRunnable(this).runTask(Praxi.getInstance());
-
-        TaskUtil.runLater(() -> {
-            if (this.isSoloMatch()) {
-                final Player playerA = this.getPlayerA();
-                final Player playerB = this.getPlayerB();
-
-                NameTagHandler.removeFromTeams(playerA, playerB);
-                NameTagHandler.removeFromTeams(playerB, playerA);
-                NameTagHandler.removeHealthDisplay(playerA);
-                NameTagHandler.removeHealthDisplay(playerB);
-
-                for (MatchPlayer matchPlayer : new MatchPlayer[]{this.getMatchPlayerA(), this.getMatchPlayerB()}) {
-                    final Player player = matchPlayer.toPlayer();
-
-                    if (player != null) {
-                        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
-
-                        PlayerUtil.spawn(player);
-
-                        praxiPlayer.setState(PlayerState.IN_LOBBY);
-                        praxiPlayer.setMatch(null);
-                        praxiPlayer.setEnderpearlCooldown(null);
-                        praxiPlayer.loadLayout();
-                        player.setKnockbackProfile(null);
-                    }
-                }
-            } else if (this.isTeamMatch()) {
-                this.getPlayers().forEach(player -> {
-                    NameTagHandler.removeHealthDisplay(player);
-                    this.getPlayers().forEach(otherPlayer -> NameTagHandler.removeFromTeams(player, otherPlayer));
-                });
-
-                for (MatchPlayer matchPlayer : this.getMatchPlayers()) {
-                    if (matchPlayer.isDisconnected()) {
-                        continue;
-                    }
-
-                    final Player player = matchPlayer.toPlayer();
-
-                    if (player != null) {
-                        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
-
-                        PlayerUtil.spawn(player);
-
-                        praxiPlayer.setState(PlayerState.IN_LOBBY);
-                        praxiPlayer.setMatch(null);
-                        praxiPlayer.setEnderpearlCooldown(null);
-                        praxiPlayer.loadLayout();
-                        player.setKnockbackProfile(null);
-                    }
-                }
-            }
-        }, 20L * 3);
-
-        matches.remove(this);
-    }
-
-    public void handleRespawn(Player player) {
-        player.spigot().respawn();
-        player.setVelocity(new Vector());
-
-        this.onRespawn(player);
-    }
-
-    public void handleDeath(Player deadPlayer, Player killerPlayer, boolean disconnected) {
-        final MatchPlayer matchPlayer = this.getMatchPlayer(deadPlayer);
-
-        if (!matchPlayer.isAlive()) {
-            return;
-        }
-
-        matchPlayer.setAlive(false);
-        matchPlayer.setDisconnected(disconnected);
-
-        final List<Player> involvedPlayers = new ArrayList<>();
-
-        if (this.isSoloMatch()) {
-            involvedPlayers.add(this.getPlayerA());
-            involvedPlayers.add(this.getPlayerB());
-        } else {
-            involvedPlayers.addAll(this.getPlayers());
-        }
-
-        involvedPlayers.addAll(this.getSpectators());
-
-        EntityLightning is = new EntityLightning(((CraftWorld) deadPlayer.getWorld()).getHandle(), deadPlayer.getLocation().getX(), deadPlayer.getLocation().getY(), deadPlayer.getLocation().getZ());
-        PacketPlayOutSpawnEntityWeather lightningPacket = new PacketPlayOutSpawnEntityWeather(is);
-
-        involvedPlayers.forEach(other -> {
-            if (other != null) {
-                other.playSound(deadPlayer.getLocation(), Sound.AMBIENCE_THUNDER, 1.0F, 1.0F);
-                ((CraftPlayer) other).getHandle().playerConnection.sendPacket(lightningPacket);
-            }
-        });
-
-        for (Player involved : involvedPlayers) {
-            String deadName = Style.RED + deadPlayer.getName();
-
-            if (this.isSoloMatch()) {
-                if (deadPlayer.getUniqueId().equals(involved.getUniqueId())) {
-                    deadName = Style.GREEN + deadPlayer.getName();
-                }
-            } else {
-                final MatchTeam matchTeam = this.getTeam(involved);
-
-                if (matchTeam != null && matchTeam.containsPlayer(deadPlayer)) {
-                    deadName = Style.GREEN + deadPlayer.getName();
-                }
-            }
-
-            if (matchPlayer.isDisconnected()) {
-                involved.sendMessage(deadName + Style.GRAY + " has disconnected.");
-                continue;
-            }
-
-            String killerName = null;
-
-            if (killerPlayer != null) {
-                killerName = Style.RED + killerPlayer.getName();
-
-                if (this.isSoloMatch()) {
-                    if (killerPlayer.getUniqueId().equals(involved.getUniqueId())) {
-                        killerName = Style.GREEN + killerPlayer.getName();
-                    }
-                } else {
-                    final MatchTeam matchTeam = this.getTeam(involved);
-
-                    if (matchTeam != null && matchTeam.containsPlayer(killerPlayer)) {
-                        killerName = Style.GREEN + killerPlayer.getName();
-                    }
-                }
-            }
-
-            if (killerName == null) {
-                involved.sendMessage(deadName + Style.GRAY + " has died.");
-            } else {
-                involved.sendMessage(deadName + Style.GRAY + " was killed by " + killerName + Style.GRAY + ".");
-            }
-        }
-
-        this.onDeath(deadPlayer, killerPlayer);
-
-        if (this.canEnd()) {
-            this.handleEnd();
-        }
-    }
-
-    public String getDuration() {
-        if (this.isStarting()) {
-            return "00:00";
-        } else if (this.isEnding()) {
-            return "Ending";
-        } else {
-            return TimeUtil.millisToTimer(this.getElapsedDuration());
-        }
-    }
-
-    public long getElapsedDuration() {
-        return System.currentTimeMillis() - this.startTimestamp;
-    }
-
-    protected void broadcast(String message) {
-        if (this.isSoloMatch()) {
-            this.getPlayerA().sendMessage(message);
-            this.getPlayerB().sendMessage(message);
-        } else {
-            this.getPlayers().forEach(player -> player.sendMessage(message));
-        }
-
-        this.getSpectators().forEach(player -> player.sendMessage(message));
-    }
-
-    void broadcast(Sound sound) {
-        if (this.isSoloMatch()) {
-            this.getPlayerA().playSound(this.getPlayerA().getLocation(), sound, 1.0F, 1.0F);
-            this.getPlayerB().playSound(this.getPlayerB().getLocation(), sound, 1.0F, 1.0F);
-        } else {
-            this.getPlayers().forEach(player -> player.playSound(player.getLocation(), sound, 1.0F, 1.0F));
-        }
-
-        this.getSpectators().forEach(player -> player.playSound(player.getLocation(), sound, 1.0F, 1.0F));
-    }
-
-    public List<UUID> getInvolvedPlayers() {
-        List<UUID> toReturn = new ArrayList<>();
-
-        toReturn.addAll(this.spectators);
-
-        if (this.isSoloMatch()) {
-            toReturn.add(this.getMatchPlayerA().getUuid());
-            toReturn.add(this.getMatchPlayerB().getUuid());
-        } else if (this.isTeamMatch()) {
-            this.getMatchPlayers().forEach(matchPlayer -> toReturn.add(matchPlayer.getUuid()));
-        }
-
-        return toReturn;
-    }
-
-    protected List<Player> getSpectators() {
-        return PlayerUtil.toBukkitPlayers(this.spectators);
-    }
-
-    public void addSpectator(Player player, Player target) {
-        this.spectators.add(player.getUniqueId());
-
-        if (this.isSoloMatch()) {
-            final Player playerA = this.getPlayerA();
-            final Player playerB = this.getPlayerB();
-
-            if (playerA != null) {
-                player.showPlayer(playerA);
-
-                NameTagHandler.addToTeam(player, playerA, ChatColor.AQUA, this.ladder.isBuild());
-            }
-
-            if (playerB != null) {
-                player.showPlayer(playerB);
-
-                NameTagHandler.addToTeam(player, playerB, ChatColor.LIGHT_PURPLE, this.ladder.isBuild());
-            }
-        } else if (this.isTeamMatch()) {
-            this.getTeamA().getPlayers().forEach(teamPlayer -> {
-                player.showPlayer(teamPlayer);
-                teamPlayer.hidePlayer(player);
-                NameTagHandler.addToTeam(player, teamPlayer, ChatColor.AQUA, this.ladder.isBuild());
-            });
-
-            this.getTeamB().getPlayers().forEach(teamPlayer -> {
-                player.showPlayer(teamPlayer);
-                teamPlayer.hidePlayer(player);
-                NameTagHandler.addToTeam(player, teamPlayer, ChatColor.LIGHT_PURPLE, this.ladder.isBuild());
-            });
-        }
-
-        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
-
-        praxiPlayer.setMatch(this);
-        praxiPlayer.setState(PlayerState.SPECTATE_MATCH);
-        praxiPlayer.loadLayout();
-
-        player.setAllowFlight(true);
-        player.setFlying(true);
-        player.updateInventory();
-        player.teleport(target.getLocation().clone().add(0, 2, 0));
-        player.sendMessage(Style.YELLOW + "You are spectating " + Style.PINK + target.getName() + Style.YELLOW + ".");
-
-        if (this.isSoloMatch()) {
-            for (Player matchPlayer : new Player[]{this.getPlayerA(), this.getPlayerB()}) {
-                if (!player.hasPermission("praxi.spectate.hidden")) {
-                    matchPlayer.sendMessage(Style.PINK + player.getName() + Style.YELLOW + " is now spectating.");
-
-                } else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
-                    matchPlayer.sendMessage(Style.GRAY + "[Silent] " + Style.PINK + player.getName() + Style.YELLOW + " is now spectating.");
-                }
-            }
-        } else if (this.isTeamMatch()) {
-            for (Player matchPlayer : this.getPlayers()) {
-                if (!player.hasPermission("praxi.spectate.hidden")) {
-                    matchPlayer.sendMessage(Style.PINK + player.getName() + Style.YELLOW + " is now spectating.");
-
-                } else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
-                    matchPlayer.sendMessage(Style.GRAY + "[Silent] " + Style.PINK + player.getName() + Style.YELLOW + " is now spectating.");
-                }
-            }
-        }
-    }
-
-    public void removeSpectator(Player player) {
-        this.spectators.remove(player.getUniqueId());
-
-        if (this.isSoloMatch()) {
-            player.hidePlayer(this.getPlayerA());
-            player.hidePlayer(this.getPlayerB());
-
-            NameTagHandler.removeFromTeams(player, this.getPlayerA());
-            NameTagHandler.removeFromTeams(player, this.getPlayerB());
-            NameTagHandler.removeHealthDisplay(player);
-        } else if (this.isTeamMatch()) {
-            this.getPlayers().forEach(other -> {
-                player.hidePlayer(other);
-                other.hidePlayer(player);
-                NameTagHandler.removeFromTeams(player, other);
-            });
-        }
-
-        final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
-
-        if (this.state != MatchState.ENDING) {
-            if (this.isSoloMatch()) {
-                for (Player matchPlayer : new Player[]{this.getPlayerA(), this.getPlayerB()}) {
-                    if (!player.hasPermission("praxi.spectate.hidden")) {
-                        matchPlayer.sendMessage(NucleusAPI.getColoredName(player) + Style.YELLOW + " is no longer spectating your match.");
-                    } else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
-                        matchPlayer.sendMessage(Style.GRAY + "[Silent] " + NucleusAPI.getColoredName(player) + Style.YELLOW + " is no longer spectating your match.");
-                    }
-                }
-            } else if (this.isTeamMatch()) {
-                for (Player matchPlayer : this.getPlayers()) {
-                    if (!player.hasPermission("praxi.spectate.hidden")) {
-                        matchPlayer.sendMessage(NucleusAPI.getColoredName(player) + Style.YELLOW + " is no longer spectating your match.");
-                    } else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
-                        matchPlayer.sendMessage(Style.GRAY + "[Silent] " + NucleusAPI.getColoredName(player) + Style.YELLOW + " is no longer spectating your match.");
-                    }
-                }
-            }
-        }
-
-        praxiPlayer.setState(PlayerState.IN_LOBBY);
-        praxiPlayer.setMatch(null);
-        praxiPlayer.loadLayout();
-
-        PlayerUtil.spawn(player);
-    }
+		this.onStart();
+
+		TaskUtil.runTimer(new MatchStartTask(this), 20L, 20L);
+	}
+
+	private void handleEnd() {
+		this.state = MatchState.ENDING;
+
+		this.onEnd();
+
+		if (this.isSoloMatch()) {
+			final Player playerA = this.getPlayerA();
+			final Player playerB = this.getPlayerB();
+
+			playerA.hidePlayer(playerB);
+			playerB.hidePlayer(playerA);
+
+			for (MatchPlayer matchPlayer : new MatchPlayer[]{ this.getMatchPlayerA(), this.getMatchPlayerB() }) {
+				if (matchPlayer.isAlive()) {
+					final Player player = matchPlayer.toPlayer();
+
+					if (player != null) {
+						player.setFireTicks(0);
+						player.updateInventory();
+
+						if (matchPlayer.isAlive()) {
+							MatchSnapshot snapshot = new MatchSnapshot(matchPlayer);
+
+							snapshot.setSwitchTo(this.getOpponentMatchPlayer(player));
+
+							this.snapshots.add(snapshot);
+						}
+					}
+				}
+			}
+		} else if (this.isTeamMatch()) {
+			for (MatchPlayer firstMatchPlayer : this.getMatchPlayers()) {
+				if (firstMatchPlayer.isDisconnected()) {
+					continue;
+				}
+
+				final Player player = firstMatchPlayer.toPlayer();
+
+				if (player != null) {
+					for (MatchPlayer secondMatchPlayer : this.getMatchPlayers()) {
+						if (secondMatchPlayer.isDisconnected()) {
+							continue;
+						}
+
+						if (secondMatchPlayer.getUuid().equals(player.getUniqueId())) {
+							continue;
+						}
+
+						final Player secondPlayer = secondMatchPlayer.toPlayer();
+
+						if (secondPlayer == null) {
+							continue;
+						}
+
+						player.hidePlayer(secondPlayer);
+					}
+
+					player.setFireTicks(0);
+					player.updateInventory();
+
+					if (firstMatchPlayer.isAlive()) {
+						this.snapshots.add(new MatchSnapshot(firstMatchPlayer));
+					}
+				}
+			}
+		}
+
+		this.getSpectators().forEach(this::removeSpectator);
+		this.entities.forEach(Entity::remove);
+		this.snapshots.forEach(matchInventory -> {
+			matchInventory.setCreated(System.currentTimeMillis());
+			MatchSnapshot.getCache().put(matchInventory.getMatchPlayer().getUuid(), matchInventory);
+		});
+
+		new MatchResetRunnable(this).runTask(Praxi.getInstance());
+
+		TaskUtil.runLater(() -> {
+			if (this.isSoloMatch()) {
+				final Player playerA = this.getPlayerA();
+				final Player playerB = this.getPlayerB();
+
+				NameTagHandler.removeFromTeams(playerA, playerB);
+				NameTagHandler.removeFromTeams(playerB, playerA);
+				NameTagHandler.removeHealthDisplay(playerA);
+				NameTagHandler.removeHealthDisplay(playerB);
+
+				for (MatchPlayer matchPlayer : new MatchPlayer[]{ this.getMatchPlayerA(), this.getMatchPlayerB() }) {
+					final Player player = matchPlayer.toPlayer();
+
+					if (player != null) {
+						final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+
+						PlayerUtil.spawn(player);
+
+						praxiPlayer.setState(PlayerState.IN_LOBBY);
+						praxiPlayer.setMatch(null);
+						praxiPlayer.setEnderpearlCooldown(null);
+						praxiPlayer.loadLayout();
+						player.setKnockbackProfile(null);
+					}
+				}
+			} else if (this.isTeamMatch()) {
+				this.getPlayers().forEach(player -> {
+					NameTagHandler.removeHealthDisplay(player);
+					this.getPlayers().forEach(otherPlayer -> NameTagHandler.removeFromTeams(player, otherPlayer));
+				});
+
+				for (MatchPlayer matchPlayer : this.getMatchPlayers()) {
+					if (matchPlayer.isDisconnected()) {
+						continue;
+					}
+
+					final Player player = matchPlayer.toPlayer();
+
+					if (player != null) {
+						final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+
+						PlayerUtil.spawn(player);
+
+						praxiPlayer.setState(PlayerState.IN_LOBBY);
+						praxiPlayer.setMatch(null);
+						praxiPlayer.setEnderpearlCooldown(null);
+						praxiPlayer.loadLayout();
+						player.setKnockbackProfile(null);
+					}
+				}
+			}
+		}, 20L * 3);
+
+		matches.remove(this);
+	}
+
+	public void handleRespawn(Player player) {
+		player.spigot().respawn();
+		player.setVelocity(new Vector());
+
+		this.onRespawn(player);
+	}
+
+	public void handleDeath(Player deadPlayer, Player killerPlayer, boolean disconnected) {
+		final MatchPlayer matchPlayer = this.getMatchPlayer(deadPlayer);
+
+		if (!matchPlayer.isAlive()) {
+			return;
+		}
+
+		matchPlayer.setAlive(false);
+		matchPlayer.setDisconnected(disconnected);
+
+		final List<Player> involvedPlayers = new ArrayList<>();
+
+		if (this.isSoloMatch()) {
+			involvedPlayers.add(this.getPlayerA());
+			involvedPlayers.add(this.getPlayerB());
+		} else {
+			involvedPlayers.addAll(this.getPlayers());
+		}
+
+		involvedPlayers.addAll(this.getSpectators());
+
+		EntityLightning is =
+				new EntityLightning(((CraftWorld) deadPlayer.getWorld()).getHandle(), deadPlayer.getLocation().getX(),
+						deadPlayer.getLocation().getY(), deadPlayer.getLocation().getZ()
+				);
+		PacketPlayOutSpawnEntityWeather lightningPacket = new PacketPlayOutSpawnEntityWeather(is);
+
+		involvedPlayers.forEach(other -> {
+			if (other != null) {
+				other.playSound(deadPlayer.getLocation(), Sound.AMBIENCE_THUNDER, 1.0F, 1.0F);
+				((CraftPlayer) other).getHandle().playerConnection.sendPacket(lightningPacket);
+			}
+		});
+
+		for (Player involved : involvedPlayers) {
+			String deadName = Style.RED + deadPlayer.getName();
+
+			if (this.isSoloMatch()) {
+				if (deadPlayer.getUniqueId().equals(involved.getUniqueId())) {
+					deadName = Style.GREEN + deadPlayer.getName();
+				}
+			} else {
+				final MatchTeam matchTeam = this.getTeam(involved);
+
+				if (matchTeam != null && matchTeam.containsPlayer(deadPlayer)) {
+					deadName = Style.GREEN + deadPlayer.getName();
+				}
+			}
+
+			if (matchPlayer.isDisconnected()) {
+				involved.sendMessage(deadName + Style.YELLOW + " has disconnected.");
+				continue;
+			}
+
+			String killerName = null;
+
+			if (killerPlayer != null) {
+				killerName = Style.RED + killerPlayer.getName();
+
+				if (this.isSoloMatch()) {
+					if (killerPlayer.getUniqueId().equals(involved.getUniqueId())) {
+						killerName = Style.GREEN + killerPlayer.getName();
+					}
+				} else {
+					final MatchTeam matchTeam = this.getTeam(involved);
+
+					if (matchTeam != null && matchTeam.containsPlayer(killerPlayer)) {
+						killerName = Style.GREEN + killerPlayer.getName();
+					}
+				}
+			}
+
+			if (killerName == null) {
+				involved.sendMessage(deadName + Style.YELLOW + " has died.");
+			} else {
+				involved.sendMessage(deadName + Style.YELLOW + " was killed by " + killerName + Style.GRAY + ".");
+			}
+		}
+
+		this.onDeath(deadPlayer, killerPlayer);
+
+		if (this.canEnd()) {
+			this.handleEnd();
+		}
+	}
+
+	public String getDuration() {
+		if (this.isStarting()) {
+			return "00:00";
+		} else if (this.isEnding()) {
+			return "Ending";
+		} else {
+			return TimeUtil.millisToTimer(this.getElapsedDuration());
+		}
+	}
+
+	public long getElapsedDuration() {
+		return System.currentTimeMillis() - this.startTimestamp;
+	}
+
+	protected void broadcast(String message) {
+		if (this.isSoloMatch()) {
+			this.getPlayerA().sendMessage(message);
+			this.getPlayerB().sendMessage(message);
+		} else {
+			this.getPlayers().forEach(player -> player.sendMessage(message));
+		}
+
+		this.getSpectators().forEach(player -> player.sendMessage(message));
+	}
+
+	void broadcast(Sound sound) {
+		if (this.isSoloMatch()) {
+			this.getPlayerA().playSound(this.getPlayerA().getLocation(), sound, 1.0F, 1.0F);
+			this.getPlayerB().playSound(this.getPlayerB().getLocation(), sound, 1.0F, 1.0F);
+		} else {
+			this.getPlayers().forEach(player -> player.playSound(player.getLocation(), sound, 1.0F, 1.0F));
+		}
+
+		this.getSpectators().forEach(player -> player.playSound(player.getLocation(), sound, 1.0F, 1.0F));
+	}
+
+	public List<UUID> getInvolvedPlayers() {
+		List<UUID> toReturn = new ArrayList<>();
+
+		toReturn.addAll(this.spectators);
+
+		if (this.isSoloMatch()) {
+			toReturn.add(this.getMatchPlayerA().getUuid());
+			toReturn.add(this.getMatchPlayerB().getUuid());
+		} else if (this.isTeamMatch()) {
+			this.getMatchPlayers().forEach(matchPlayer -> toReturn.add(matchPlayer.getUuid()));
+		}
+
+		return toReturn;
+	}
+
+	protected List<Player> getSpectators() {
+		return PlayerUtil.convertUUIDListToPlayerList(this.spectators);
+	}
+
+	public void addSpectator(Player player, Player target) {
+		this.spectators.add(player.getUniqueId());
+
+		if (this.isSoloMatch()) {
+			final Player playerA = this.getPlayerA();
+			final Player playerB = this.getPlayerB();
+
+			if (playerA != null) {
+				player.showPlayer(playerA);
+
+				NameTagHandler.addToTeam(player, playerA, ChatColor.AQUA, this.ladder.isBuild());
+			}
+
+			if (playerB != null) {
+				player.showPlayer(playerB);
+
+				NameTagHandler.addToTeam(player, playerB, ChatColor.LIGHT_PURPLE, this.ladder.isBuild());
+			}
+		} else if (this.isTeamMatch()) {
+			this.getTeamA().getPlayers().forEach(teamPlayer -> {
+				player.showPlayer(teamPlayer);
+				teamPlayer.hidePlayer(player);
+				NameTagHandler.addToTeam(player, teamPlayer, ChatColor.AQUA, this.ladder.isBuild());
+			});
+
+			this.getTeamB().getPlayers().forEach(teamPlayer -> {
+				player.showPlayer(teamPlayer);
+				teamPlayer.hidePlayer(player);
+				NameTagHandler.addToTeam(player, teamPlayer, ChatColor.LIGHT_PURPLE, this.ladder.isBuild());
+			});
+		}
+
+		final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+
+		praxiPlayer.setMatch(this);
+		praxiPlayer.setState(PlayerState.SPECTATE_MATCH);
+		praxiPlayer.loadLayout();
+
+		player.setAllowFlight(true);
+		player.setFlying(true);
+		player.updateInventory();
+		player.teleport(target.getLocation().clone().add(0, 2, 0));
+		player.sendMessage(Style.YELLOW + "You are spectating " + Style.PINK + target.getName() + Style.YELLOW + ".");
+
+		if (this.isSoloMatch()) {
+			for (Player matchPlayer : new Player[]{ this.getPlayerA(), this.getPlayerB() }) {
+				if (!player.hasPermission("praxi.spectate.hidden")) {
+					matchPlayer.sendMessage(Style.PINK + player.getName() + Style.YELLOW + " is now spectating.");
+
+				} else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
+					matchPlayer.sendMessage(Style.GRAY + "[Silent] " + Style.PINK + player.getName() + Style.YELLOW +
+					                        " is now spectating.");
+				}
+			}
+		} else if (this.isTeamMatch()) {
+			for (Player matchPlayer : this.getPlayers()) {
+				if (!player.hasPermission("praxi.spectate.hidden")) {
+					matchPlayer.sendMessage(Style.PINK + player.getName() + Style.YELLOW + " is now spectating.");
+
+				} else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
+					matchPlayer.sendMessage(Style.GRAY + "[Silent] " + Style.PINK + player.getName() + Style.YELLOW +
+					                        " is now spectating.");
+				}
+			}
+		}
+	}
+
+	public void removeSpectator(Player player) {
+		this.spectators.remove(player.getUniqueId());
+
+		if (this.isSoloMatch()) {
+			player.hidePlayer(this.getPlayerA());
+			player.hidePlayer(this.getPlayerB());
+
+			NameTagHandler.removeFromTeams(player, this.getPlayerA());
+			NameTagHandler.removeFromTeams(player, this.getPlayerB());
+			NameTagHandler.removeHealthDisplay(player);
+		} else if (this.isTeamMatch()) {
+			this.getPlayers().forEach(other -> {
+				player.hidePlayer(other);
+				other.hidePlayer(player);
+				NameTagHandler.removeFromTeams(player, other);
+			});
+		}
+
+		final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+
+		if (this.state != MatchState.ENDING) {
+			if (this.isSoloMatch()) {
+				for (Player matchPlayer : new Player[]{ this.getPlayerA(), this.getPlayerB() }) {
+					if (!player.hasPermission("praxi.spectate.hidden")) {
+						matchPlayer.sendMessage(NucleusAPI.getColoredName(player) + Style.YELLOW +
+						                        " is no longer spectating your match.");
+					} else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
+						matchPlayer.sendMessage(
+								Style.GRAY + "[Silent] " + NucleusAPI.getColoredName(player) + Style.YELLOW +
+								" is no longer spectating your match.");
+					}
+				}
+			} else if (this.isTeamMatch()) {
+				for (Player matchPlayer : this.getPlayers()) {
+					if (!player.hasPermission("praxi.spectate.hidden")) {
+						matchPlayer.sendMessage(NucleusAPI.getColoredName(player) + Style.YELLOW +
+						                        " is no longer spectating your match.");
+					} else if (matchPlayer.hasPermission("praxi.spectate.hidden")) {
+						matchPlayer.sendMessage(
+								Style.GRAY + "[Silent] " + NucleusAPI.getColoredName(player) + Style.YELLOW +
+								" is no longer spectating your match.");
+					}
+				}
+			}
+		}
+
+		praxiPlayer.setState(PlayerState.IN_LOBBY);
+		praxiPlayer.setMatch(null);
+		praxiPlayer.loadLayout();
+
+		PlayerUtil.spawn(player);
+	}
 
 }

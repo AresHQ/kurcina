@@ -7,6 +7,6 @@ import lombok.Data;
 @Data
 public class NamedKit extends Kit {
 
-    private String name;
+	private String name;
 
 }

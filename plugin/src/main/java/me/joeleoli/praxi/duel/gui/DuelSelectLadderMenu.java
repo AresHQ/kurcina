@@ -1,82 +1,82 @@
 package me.joeleoli.praxi.duel.gui;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.AllArgsConstructor;
-
 import me.joeleoli.nucleus.menu.Button;
 import me.joeleoli.nucleus.menu.Menu;
-import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.ItemBuilder;
+import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.praxi.ladder.Ladder;
 import me.joeleoli.praxi.player.PraxiPlayer;
-
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.*;
-
 public class DuelSelectLadderMenu extends Menu {
 
-    @Override
-    public String getTitle(Player player) {
-        return Style.GOLD + Style.BOLD + "Select a ladder...";
-    }
+	@Override
+	public String getTitle(Player player) {
+		return Style.GOLD + Style.BOLD + "Select a ladder...";
+	}
 
-    @Override
-    public Map<Integer, Button> getButtons(Player player) {
-        Map<Integer, Button> buttons = new HashMap<>();
+	@Override
+	public Map<Integer, Button> getButtons(Player player) {
+		Map<Integer, Button> buttons = new HashMap<>();
 
-        for (Ladder ladder : Ladder.getLadders()) {
-            if (ladder.isEnabled()) {
-                buttons.put(buttons.size(), new SelectLadderButton(ladder));
-            }
-        }
+		for (Ladder ladder : Ladder.getLadders()) {
+			if (ladder.isEnabled()) {
+				buttons.put(buttons.size(), new SelectLadderButton(ladder));
+			}
+		}
 
-        return buttons;
-    }
+		return buttons;
+	}
 
-    @Override
-    public void onClose(Player player) {
-        if (!this.isClosedByMenu()) {
-            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+	@Override
+	public void onClose(Player player) {
+		if (!this.isClosedByMenu()) {
+			PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            praxiPlayer.setDuelProcedure(null);
-        }
-    }
+			praxiPlayer.setDuelProcedure(null);
+		}
+	}
 
-    @AllArgsConstructor
-    private class SelectLadderButton extends Button {
+	@AllArgsConstructor
+	private class SelectLadderButton extends Button {
 
-        private Ladder ladder;
+		private Ladder ladder;
 
-        @Override
-        public ItemStack getButtonItem(Player player) {
-            return new ItemBuilder(this.ladder.getDisplayIcon())
-                    .name(Style.SECONDARY + Style.BOLD + this.ladder.getName())
-                    .lore(Arrays.asList(
-                            "",
-                            Style.PRIMARY + "Click here to select " + Style.SECONDARY + Style.BOLD + this.ladder.getName() + Style.PRIMARY + "."
-                    ))
-                    .build();
-        }
+		@Override
+		public ItemStack getButtonItem(Player player) {
+			return new ItemBuilder(this.ladder.getDisplayIcon())
+					.name(Style.SECONDARY + Style.BOLD + this.ladder.getName())
+					.lore(Arrays.asList(
+							"",
+							Style.PRIMARY + "Click here to select " + Style.SECONDARY + Style.BOLD +
+							this.ladder.getName() + Style.PRIMARY + "."
+					))
+					.build();
+		}
 
-        @Override
-        public void clicked(Player player, int i, ClickType clickType, int hb) {
-            PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+		@Override
+		public void clicked(Player player, int i, ClickType clickType, int hb) {
+			PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-            // Update duel procedure
-            praxiPlayer.getDuelProcedure().setLadder(this.ladder);
+			// Update duel procedure
+			praxiPlayer.getDuelProcedure().setLadder(this.ladder);
 
-            // Set closed by menu
-            Menu.currentlyOpenedMenus.get(player.getName()).setClosedByMenu(true);
+			// Set closed by menu
+			Menu.currentlyOpenedMenus.get(player.getName()).setClosedByMenu(true);
 
-            // Force close inventory
-            player.closeInventory();
+			// Force close inventory
+			player.closeInventory();
 
-            // Open arena selection menu
-            new DuelSelectArenaMenu().openMenu(player);
-        }
+			// Open arena selection menu
+			new DuelSelectArenaMenu().openMenu(player);
+		}
 
-    }
+	}
 
 }

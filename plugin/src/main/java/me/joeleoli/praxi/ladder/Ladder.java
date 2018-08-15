@@ -1,92 +1,86 @@
 package me.joeleoli.praxi.ladder;
 
-import me.joeleoli.nucleus.config.ConfigCursor;
-import me.joeleoli.nucleus.util.Style;
-import me.joeleoli.nucleus.util.InventoryUtil;
-
-import me.joeleoli.praxi.Praxi;
-import me.joeleoli.praxi.config.ConfigItem;
-import me.joeleoli.praxi.kit.Kit;
-
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 import lombok.Getter;
-
+import me.joeleoli.nucleus.config.ConfigCursor;
+import me.joeleoli.nucleus.util.InventoryUtil;
+import me.joeleoli.praxi.Praxi;
+import me.joeleoli.praxi.kit.Kit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Data
 public class Ladder {
 
-    @Getter
-    private static List<Ladder> ladders = new ArrayList<>();
+	@Getter
+	private static List<Ladder> ladders = new ArrayList<>();
 
-    private String name;
-    private String displayName;
-    private ItemStack displayIcon;
-    private Kit defaultKit = new Kit();
-    private List<ItemStack> kitEditorItems = new ArrayList<>();
-    private boolean enabled, build, sumo, parkour, spleef, regeneration, allowPotionFill;
-    private int hitDelay = 20;
-    private String kbProfile;
+	private String name;
+	private String displayName;
+	private ItemStack displayIcon;
+	private Kit defaultKit = new Kit();
+	private List<ItemStack> kitEditorItems = new ArrayList<>();
+	private boolean enabled, build, sumo, parkour, spleef, regeneration, allowPotionFill;
+	private int hitDelay = 20;
+	private String kbProfile;
 
-    public Ladder(String name) {
-        this.name = name;
-        this.displayName = ChatColor.AQUA + this.name;
-        this.displayIcon = new ItemStack(Material.DIAMOND_SWORD);
+	public Ladder(String name) {
+		this.name = name;
+		this.displayName = ChatColor.AQUA + this.name;
+		this.displayIcon = new ItemStack(Material.DIAMOND_SWORD);
 
-        ladders.add(this);
-    }
+		ladders.add(this);
+	}
 
-    public ItemStack getDisplayIcon() {
-        return this.displayIcon.clone();
-    }
+	public static Ladder getByName(String name) {
+		for (Ladder ladder : ladders) {
+			if (ladder.getName().equalsIgnoreCase(name)) {
+				return ladder;
+			}
+		}
 
-    public void save() {
-        ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getLadderConfig(), "ladders." + this.name);
+		return null;
+	}
 
-        cursor.set("display-name", this.displayName);
-        cursor.set("display-icon.material", this.displayIcon.getType().name());
-        cursor.set("display-icon.durability", this.displayIcon.getDurability());
-        cursor.set("display-icon.amount", this.displayIcon.getAmount());
-        cursor.set("enabled", this.enabled);
-        cursor.set("build", this.build);
-        cursor.set("sumo", this.sumo);
-        cursor.set("spleef", this.spleef);
-        cursor.set("parkour", this.parkour);
-        cursor.set("regeneration", this.regeneration);
-        cursor.set("hit-delay", this.hitDelay);
+	public ItemStack getDisplayIcon() {
+		return this.displayIcon.clone();
+	}
 
-        if (this.displayIcon.hasItemMeta()) {
-            final ItemMeta itemMeta = this.displayIcon.getItemMeta();
+	public void save() {
+		ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getLadderConfig(), "ladders." + this.name);
 
-            if (itemMeta.hasDisplayName()) {
-                cursor.set("display-icon.name", itemMeta.getDisplayName());
-            }
+		cursor.set("display-name", this.displayName);
+		cursor.set("display-icon.material", this.displayIcon.getType().name());
+		cursor.set("display-icon.durability", this.displayIcon.getDurability());
+		cursor.set("display-icon.amount", this.displayIcon.getAmount());
+		cursor.set("enabled", this.enabled);
+		cursor.set("build", this.build);
+		cursor.set("sumo", this.sumo);
+		cursor.set("spleef", this.spleef);
+		cursor.set("parkour", this.parkour);
+		cursor.set("regeneration", this.regeneration);
+		cursor.set("hit-delay", this.hitDelay);
 
-            if (itemMeta.hasLore()) {
-                cursor.set("display-icon.lore", itemMeta.getLore());
-            }
-        }
+		if (this.displayIcon.hasItemMeta()) {
+			final ItemMeta itemMeta = this.displayIcon.getItemMeta();
 
-        cursor.set("default-kit.armor", InventoryUtil.serializeInventory(this.defaultKit.getArmor()));
-        cursor.set("default-kit.contents", InventoryUtil.serializeInventory(this.defaultKit.getContents()));
+			if (itemMeta.hasDisplayName()) {
+				cursor.set("display-icon.name", itemMeta.getDisplayName());
+			}
 
-        cursor.save();
-    }
+			if (itemMeta.hasLore()) {
+				cursor.set("display-icon.lore", itemMeta.getLore());
+			}
+		}
 
-    public static Ladder getByName(String name) {
-        for (Ladder ladder : ladders) {
-            if (ladder.getName().equalsIgnoreCase(name)) {
-                return ladder;
-            }
-        }
+		cursor.set("default-kit.armor", InventoryUtil.serializeInventory(this.defaultKit.getArmor()));
+		cursor.set("default-kit.contents", InventoryUtil.serializeInventory(this.defaultKit.getContents()));
 
-        return null;
-    }
+		cursor.save();
+	}
 
 }

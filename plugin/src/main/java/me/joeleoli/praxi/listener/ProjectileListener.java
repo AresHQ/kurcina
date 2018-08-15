@@ -1,7 +1,6 @@
 package me.joeleoli.praxi.listener;
 
 import me.joeleoli.praxi.player.PraxiPlayer;
-
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.ThrownPotion;
@@ -13,47 +12,47 @@ import org.bukkit.event.entity.ProjectileLaunchEvent;
 
 public class ProjectileListener implements Listener {
 
-    @EventHandler
-    public void onProjectileLaunch(ProjectileLaunchEvent event) {
-        if (event.getEntity() instanceof ThrownPotion) {
-            if (event.getEntity().getShooter() instanceof Player) {
-                final Player shooter = (Player) event.getEntity().getShooter();
-                final PraxiPlayer shooterData = PraxiPlayer.getByUuid(shooter.getUniqueId());
+	@EventHandler
+	public void onProjectileLaunch(ProjectileLaunchEvent event) {
+		if (event.getEntity() instanceof ThrownPotion) {
+			if (event.getEntity().getShooter() instanceof Player) {
+				final Player shooter = (Player) event.getEntity().getShooter();
+				final PraxiPlayer shooterData = PraxiPlayer.getByUuid(shooter.getUniqueId());
 
-                if (shooterData.isInMatch()) {
-                    shooterData.getMatch().getMatchPlayer(shooter).incrementPotionsThrown();
-                }
-            }
-        }
-    }
+				if (shooterData.isInMatch()) {
+					shooterData.getMatch().getMatchPlayer(shooter).incrementPotionsThrown();
+				}
+			}
+		}
+	}
 
-    @EventHandler
-    public void onProjectileHit(ProjectileHitEvent event) {
-        if (event.getEntity() instanceof Arrow) {
-            if (event.getEntity().getShooter() instanceof Player) {
-                final Player shooter = (Player) event.getEntity().getShooter();
-                final PraxiPlayer shooterData = PraxiPlayer.getByUuid(shooter.getUniqueId());
+	@EventHandler
+	public void onProjectileHit(ProjectileHitEvent event) {
+		if (event.getEntity() instanceof Arrow) {
+			if (event.getEntity().getShooter() instanceof Player) {
+				final Player shooter = (Player) event.getEntity().getShooter();
+				final PraxiPlayer shooterData = PraxiPlayer.getByUuid(shooter.getUniqueId());
 
-                if (shooterData.isInMatch()) {
-                    shooterData.getMatch().getEntities().add(event.getEntity());
-                    shooterData.getMatch().getMatchPlayer(shooter).handleHit();
-                }
-            }
-        }
-    }
+				if (shooterData.isInMatch()) {
+					shooterData.getMatch().getEntities().add(event.getEntity());
+					shooterData.getMatch().getMatchPlayer(shooter).handleHit();
+				}
+			}
+		}
+	}
 
-    @EventHandler
-    public void onPotionSplash(PotionSplashEvent event) {
-        if (event.getPotion().getShooter() instanceof Player) {
-            final Player shooter = (Player) event.getPotion().getShooter();
-            final PraxiPlayer shooterData = PraxiPlayer.getByUuid(shooter.getUniqueId());
+	@EventHandler
+	public void onPotionSplash(PotionSplashEvent event) {
+		if (event.getPotion().getShooter() instanceof Player) {
+			final Player shooter = (Player) event.getPotion().getShooter();
+			final PraxiPlayer shooterData = PraxiPlayer.getByUuid(shooter.getUniqueId());
 
-            if (shooterData.isInMatch()) {
-                if (event.getIntensity(shooter) < 0.6D) {
-                    shooterData.getMatch().getMatchPlayer(shooter).incrementPotionsMissed();
-                }
-            }
-        }
-    }
+			if (shooterData.isInMatch()) {
+				if (event.getIntensity(shooter) < 0.6D) {
+					shooterData.getMatch().getMatchPlayer(shooter).incrementPotionsMissed();
+				}
+			}
+		}
+	}
 
 }

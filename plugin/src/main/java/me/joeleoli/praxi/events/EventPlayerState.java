@@ -7,9 +7,9 @@ import lombok.Getter;
 @Getter
 public enum EventPlayerState {
 
-    WAITING("Waiting"),
-    ELIMINATED("Eliminated");
+	WAITING("Waiting"),
+	ELIMINATED("Eliminated");
 
-    private String readable;
+	private String readable;
 
 }
