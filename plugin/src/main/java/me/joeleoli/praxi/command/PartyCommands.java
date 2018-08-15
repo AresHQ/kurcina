@@ -29,7 +29,7 @@ public class PartyCommands {
 	public static void help(Player player) {
 		for (CommandHelp help : HELP) {
 			player.sendMessage(
-					Style.YELLOW + help.getSyntax() + Style.AQUA + " - " + Style.PINK + help.getDescription());
+					Style.YELLOW + help.getSyntax() + Style.GRAY + " - " + Style.PINK + help.getDescription());
 		}
 	}
 

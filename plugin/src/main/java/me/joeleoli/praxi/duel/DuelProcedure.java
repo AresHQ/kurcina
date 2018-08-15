@@ -37,7 +37,7 @@ public class DuelProcedure {
 
 		this.sender.sendMessage(
 				Style.YELLOW + "You sent a duel request to " + Style.PINK + this.target.getName() + Style.YELLOW +
-				" on " + Style.AQUA + this.arena.getName() + Style.YELLOW + ".");
+				" on " + Style.PINK + this.arena.getName() + Style.YELLOW + ".");
 
 		final HoverEvent hoverEvent = new HoverEvent(
 				HoverEvent.Action.SHOW_TEXT,
