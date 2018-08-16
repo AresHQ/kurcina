@@ -11,7 +11,7 @@ import org.bukkit.block.BlockState;
 import org.bukkit.scheduler.BukkitRunnable;
 
 @AllArgsConstructor
-public class MatchResetRunnable extends BukkitRunnable {
+public class MatchResetTask extends BukkitRunnable {
 
 	private Match match;
 

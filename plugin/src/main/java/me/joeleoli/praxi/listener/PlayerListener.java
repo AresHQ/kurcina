@@ -159,10 +159,10 @@ public class PlayerListener implements Listener {
 		event.getPlayer().sendMessage(new String[]{
 				Style.getBorderLine(),
 				"",
-				Style.center(Style.PRIMARY + "Welcome to " + Style.SECONDARY + Style.BOLD + "MineXD Practice" +
-				             Style.PRIMARY + "!"),
+				Style.center(Style.YELLOW + "Welcome to " + Style.PINK + Style.BOLD + "MineXD Practice" +
+				             Style.YELLOW + "!"),
 				"",
-				Style.center(Style.PRIMARY + "Follow our twitter " + Style.SECONDARY + "@MineXD" + Style.PRIMARY +
+				Style.center(Style.YELLOW + "Follow our twitter " + Style.PINK + "@MineXD" + Style.YELLOW +
 				             " for updates and giveaways."),
 				"",
 				Style.getBorderLine()
@@ -308,13 +308,13 @@ public class PlayerListener implements Listener {
 
 				switch (hotbarItem) {
 					case QUEUE_JOIN_RANKED: {
-						if (praxiPlayer.getState() == PlayerState.IN_LOBBY) {
+						if (praxiPlayer.isInLobby()) {
 							new QueueJoinMenu(true).openMenu(event.getPlayer());
 						}
 					}
 					break;
 					case QUEUE_JOIN_UNRANKED: {
-						if (praxiPlayer.getState() == PlayerState.IN_LOBBY) {
+						if (praxiPlayer.isInLobby()) {
 							new QueueJoinMenu(false).openMenu(event.getPlayer());
 						}
 					}
@@ -358,7 +358,7 @@ public class PlayerListener implements Listener {
 					}
 					break;
 					case KIT_EDITOR: {
-						if (praxiPlayer.getState() == PlayerState.IN_LOBBY) {
+						if (praxiPlayer.isInLobby()) {
 							new SelectLadderKitMenu().openMenu(event.getPlayer());
 						}
 					}
@@ -598,7 +598,7 @@ public class PlayerListener implements Listener {
 	public void onPlayerItemDamage(PlayerItemDamageEvent event) {
 		final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(event.getPlayer().getUniqueId());
 
-		if (praxiPlayer.getState() == PlayerState.IN_LOBBY) {
+		if (praxiPlayer.isInLobby()) {
 			event.setCancelled(true);
 		}
 	}

@@ -19,6 +19,7 @@ import me.joeleoli.praxi.ladder.Ladder;
 import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.ragespigot.RageSpigot;
+import me.joeleoli.ragespigot.knockback.KnockbackProfile;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.minecraft.server.v1_8_R3.EntityLightning;
 import net.minecraft.server.v1_8_R3.PacketPlayOutSpawnEntityWeather;
@@ -187,8 +188,8 @@ public abstract class Match {
 				FairFight.getInstance().getPlayerDataManager().getPlayerData(playerA).setAllowTeleport(true);
 				FairFight.getInstance().getPlayerDataManager().getPlayerData(playerB).setAllowTeleport(true);
 
-				playerA.setWalkSpeed(0.0F);
-				playerB.setWalkSpeed(0.0F);
+				PlayerUtil.denyMovement(playerA);
+				PlayerUtil.denyMovement(playerB);
 			} else {
 				for (ItemStack itemStack : PraxiPlayer.getByUuid(playerA.getUniqueId()).getKitItems(this.ladder)) {
 					playerA.getInventory().addItem(itemStack);
@@ -200,10 +201,13 @@ public abstract class Match {
 			}
 
 			if (this.ladder.getKbProfile() != null) {
-				playerA.setKnockbackProfile(
-						RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile()));
-				playerB.setKnockbackProfile(
-						RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile()));
+				final KnockbackProfile profile =
+						RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile());
+
+				if (profile != null) {
+					playerA.setKnockbackProfile(profile);
+					playerB.setKnockbackProfile(profile);
+				}
 			}
 		} else if (this.isTeamMatch()) {
 			final MatchTeam teamA = this.getTeamA();
@@ -263,7 +267,7 @@ public abstract class Match {
 				if (this.ladder.isSumo()) {
 					FairFight.getInstance().getPlayerDataManager().getPlayerData(first).setAllowTeleport(true);
 
-					first.setWalkSpeed(0.0F);
+					PlayerUtil.denyMovement(first);
 				} else {
 					for (ItemStack itemStack : PraxiPlayer.getByUuid(first.getUniqueId()).getKitItems(this.ladder)) {
 						first.getInventory().addItem(itemStack);
@@ -271,8 +275,12 @@ public abstract class Match {
 				}
 
 				if (this.ladder.getKbProfile() != null) {
-					first.setKnockbackProfile(
-							RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile()));
+					final KnockbackProfile profile =
+							RageSpigot.INSTANCE.getConfig().getKbProfileByName(this.ladder.getKbProfile());
+
+					if (profile != null) {
+						first.setKnockbackProfile(profile);
+					}
 				}
 
 				for (Player second : players) {
@@ -373,7 +381,7 @@ public abstract class Match {
 			MatchSnapshot.getCache().put(matchInventory.getMatchPlayer().getUuid(), matchInventory);
 		});
 
-		new MatchResetRunnable(this).runTask(Praxi.getInstance());
+		new MatchResetTask(this).runTask(Praxi.getInstance());
 
 		TaskUtil.runLater(() -> {
 			if (this.isSoloMatch()) {

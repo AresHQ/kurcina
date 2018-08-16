@@ -65,8 +65,8 @@ public class Queue {
 		praxiPlayer.loadLayout();
 
 		player.sendMessage(
-				Style.PRIMARY + "You joined the " + Style.SECONDARY + (this.ranked ? "Ranked" : "Unranked") + " " +
-				this.ladder.getName() + Style.PRIMARY + " queue.");
+				Style.YELLOW + "You joined the " + Style.PINK + (this.ranked ? "Ranked" : "Unranked") + " " +
+				this.ladder.getName() + Style.YELLOW + " queue.");
 
 		this.players.add(queuePlayer);
 	}
@@ -78,8 +78,8 @@ public class Queue {
 
 		if (player != null && player.isOnline()) {
 			player.sendMessage(
-					Style.PRIMARY + "You left the " + Style.SECONDARY + (this.ranked ? "Ranked" : "Unranked") + " " +
-					this.ladder.getName() + Style.PRIMARY + " queue.");
+					Style.YELLOW + "You left the " + Style.PINK + (this.ranked ? "Ranked" : "Unranked") + " " +
+					this.ladder.getName() + Style.YELLOW + " queue.");
 		}
 
 		final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(queuePlayer.getPlayerUuid());

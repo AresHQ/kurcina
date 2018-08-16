@@ -4,7 +4,6 @@ import me.joeleoli.nucleus.NucleusAPI;
 import me.joeleoli.nucleus.command.Command;
 import me.joeleoli.nucleus.command.param.Parameter;
 import me.joeleoli.nucleus.util.Style;
-import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.player.PracticeSetting;
 import me.joeleoli.praxi.player.PraxiPlayer;
 import org.bukkit.entity.Player;
@@ -21,7 +20,7 @@ public class SpectateCommands {
 		PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 		PraxiPlayer targetData = PraxiPlayer.getByUuid(target.getUniqueId());
 
-		if (praxiPlayer == null || praxiPlayer.getState() != PlayerState.IN_LOBBY) {
+		if (praxiPlayer == null || !praxiPlayer.isInLobby()) {
 			player.sendMessage(Style.RED + "You must be in the lobby to spectate another player's match.");
 			return;
 		}
@@ -31,7 +30,7 @@ public class SpectateCommands {
 			return;
 		}
 
-		if (targetData == null || targetData.getState() != PlayerState.IN_MATCH || targetData.getMatch() == null) {
+		if (targetData == null || !targetData.isInMatch()) {
 			player.sendMessage(Style.RED + "That player is not in a match.");
 			return;
 		}
@@ -48,8 +47,7 @@ public class SpectateCommands {
 	public static void stopSpectate(Player player) {
 		PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-		if (praxiPlayer == null || praxiPlayer.getState() != PlayerState.SPECTATE_MATCH ||
-		    praxiPlayer.getMatch() == null) {
+		if (praxiPlayer == null || !praxiPlayer.isSpectating()) {
 			player.sendMessage(Style.RED + "You are not spectating a match.");
 			return;
 		}

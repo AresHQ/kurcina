@@ -109,6 +109,10 @@ public class PraxiPlayer extends PlayerInfo {
 		}
 	}
 
+	public boolean isInLobby() {
+		return this.state == PlayerState.IN_LOBBY;
+	}
+
 	public boolean isInQueue() {
 		return this.state == PlayerState.IN_QUEUE && this.queuePlayer != null;
 	}
@@ -138,7 +142,7 @@ public class PraxiPlayer extends PlayerInfo {
 
 		PlayerUtil.reset(player);
 
-		if (this.state == PlayerState.IN_LOBBY) {
+		if (this.isInLobby()) {
 			if (this.party == null) {
 				player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.LOBBY_NO_PARTY));
 			} else {

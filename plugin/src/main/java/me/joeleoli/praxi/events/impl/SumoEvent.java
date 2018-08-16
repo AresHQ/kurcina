@@ -4,16 +4,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import lombok.Getter;
-import me.joeleoli.nucleus.NucleusAPI;
+import lombok.Setter;
 import me.joeleoli.nucleus.player.PlayerInfo;
 import me.joeleoli.nucleus.util.PlayerUtil;
-import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.TimeUtil;
 import me.joeleoli.praxi.Praxi;
 import me.joeleoli.praxi.events.Event;
 import me.joeleoli.praxi.events.EventPlayer;
 import me.joeleoli.praxi.events.EventPlayerState;
 import me.joeleoli.praxi.events.EventState;
+import me.joeleoli.praxi.events.task.EventRoundStartTask;
 import org.bukkit.entity.Player;
 
 @Getter
@@ -22,6 +22,7 @@ public class SumoEvent extends Event {
 	private Map<UUID, Integer> roundWins = new HashMap<>();
 	private EventPlayer roundPlayerA;
 	private EventPlayer roundPlayerB;
+	@Setter
 	private long roundStart;
 
 	public SumoEvent(Player player) {
@@ -39,7 +40,20 @@ public class SumoEvent extends Event {
 	}
 
 	@Override
+	public void onJoin(Player player) {
+		this.roundWins.put(player.getUniqueId(), 0);
+	}
+
+	@Override
+	public void onLeave(Player player) {
+		this.roundWins.remove(player.getUniqueId());
+	}
+
+	@Override
 	public void onRound() {
+		this.setState(EventState.ROUND_STARTING);
+		this.setEventTask(new EventRoundStartTask(this));
+
 		this.roundPlayerA = this.findRoundPlayer();
 		this.roundPlayerB = this.findRoundPlayer();
 
@@ -49,32 +63,11 @@ public class SumoEvent extends Event {
 		PlayerUtil.reset(playerA);
 		PlayerUtil.reset(playerB);
 
+		PlayerUtil.denyMovement(playerA);
+		PlayerUtil.denyMovement(playerB);
+
 		playerA.teleport(Praxi.getInstance().getEventManager().getSumoSpawn1());
-		playerB.teleport(Praxi.getInstance().getEventManager().getSumoSpawn1());
-	}
-
-	@Override
-	public void onJoin(Player player) {
-		this.getEventPlayers().put(player.getUniqueId(), new EventPlayer(player));
-
-		for (Player other : this.getPlayers()) {
-			other.sendMessage(Style.GOLD + Style.BOLD + "[Event] " + NucleusAPI.getColoredName(player) + Style.YELLOW +
-			                  " has joined the event! " + Style.GRAY + "( " + this.getPlayerCount() + "/" +
-			                  this.getMaxPlayers() + ")");
-		}
-
-		player.teleport(Praxi.getInstance().getEventManager().getSumoSpectator());
-	}
-
-	@Override
-	public void onLeave(Player player) {
-		this.getEventPlayers().remove(player.getUniqueId());
-
-		for (Player other : this.getPlayers()) {
-			other.sendMessage(Style.GOLD + Style.BOLD + "[Event] " + NucleusAPI.getColoredName(player) + Style.YELLOW +
-			                  " has left the event! " + Style.GRAY + "( " + this.getPlayerCount() + "/" +
-			                  this.getMaxPlayers() + ")");
-		}
+		playerB.teleport(Praxi.getInstance().getEventManager().getSumoSpawn2());
 	}
 
 	@Override

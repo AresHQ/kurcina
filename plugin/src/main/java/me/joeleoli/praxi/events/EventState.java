@@ -6,6 +6,5 @@ public enum EventState {
 	ROUND_STARTING,
 	ROUND_FIGHTING,
 	ROUND_ENDING,
-	ENDING,
 
 }

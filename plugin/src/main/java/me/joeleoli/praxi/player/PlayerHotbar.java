@@ -35,7 +35,7 @@ public class PlayerHotbar {
 		);
 		items.put(HotbarItem.PARTY_EVENTS,
 				new ItemBuilder(Material.DIAMOND_SWORD).name(Style.GREEN + Style.BOLD + "Party Events")
-				                                       .lore(Style.YELLOW + "Right-click to start a party events.")
+				                                       .lore(Style.YELLOW + "Right-click to start a party event.")
 				                                       .build()
 		);
 		items.put(HotbarItem.PARTY_CREATE,
@@ -78,11 +78,11 @@ public class PlayerHotbar {
 		);
 		items.put(HotbarItem.EVENT_JOIN,
 				new ItemBuilder(Material.NETHER_STAR).name(Style.AQUA + Style.BOLD + "Join Event")
-				                                     .lore(Style.YELLOW + "Right-click to join the events.").build()
+				                                     .lore(Style.YELLOW + "Right-click to join the event.").build()
 		);
 		items.put(HotbarItem.EVENT_LEAVE,
 				new ItemBuilder(Material.NETHER_STAR).name(Style.RED + Style.BOLD + "Leave Event")
-				                                     .lore(Style.YELLOW + "Right-click to leave the events.").build()
+				                                     .lore(Style.YELLOW + "Right-click to leave the event.").build()
 		);
 
 		layouts.put(HotbarLayout.LOBBY_NO_PARTY, new HotbarItem[]{

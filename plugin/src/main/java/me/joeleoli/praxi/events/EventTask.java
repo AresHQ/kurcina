@@ -1,37 +1,37 @@
 package me.joeleoli.praxi.events;
 
+import lombok.Getter;
 import me.joeleoli.praxi.Praxi;
 import org.bukkit.scheduler.BukkitRunnable;
 
-public class EventTask extends BukkitRunnable {
+@Getter
+public abstract class EventTask extends BukkitRunnable {
 
 	private int ticks;
 	private Event event;
+	private EventState eventState;
 
-	public EventTask(Event event) {
+	public EventTask(Event event, EventState eventState) {
 		this.event = event;
+		this.eventState = eventState;
 	}
 
 	@Override
 	public void run() {
-		this.ticks++;
-
-		if (Praxi.getInstance().getEventManager().getActiveEvent() == null ||
-		    !Praxi.getInstance().getEventManager().getActiveEvent().equals(this.event)) {
+		if (Praxi.getInstance().getEventManager().getActiveEvent() == null || !Praxi.getInstance().getEventManager().getActiveEvent().equals(this.event) || this.event.getState() != this.eventState) {
 			this.cancel();
 			return;
 		}
 
-		if (this.event.getState() == EventState.WAITING) {
-			if (this.event.getPlayers().size() == this.event.getMaxPlayers() ||
-			    (this.event.getCooldown().hasExpired() && this.event.getPlayers().size() >= 2)) {
-				this.event.onRound();
-			}
+		this.onRun();
 
-			if (!this.event.getCooldown().hasExpired() && this.ticks % 5 == 0) {
-				this.event.announce();
-			}
-		}
+		this.ticks++;
 	}
+
+	public int getSeconds() {
+		return 3 - this.ticks;
+	}
+
+	public abstract void onRun();
 
 }

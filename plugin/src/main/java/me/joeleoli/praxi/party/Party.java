@@ -96,7 +96,7 @@ public class Party extends Team<TeamPlayer> {
 
 		final HoverEvent hoverEvent = new HoverEvent(
 				HoverEvent.Action.SHOW_TEXT,
-				new ChatComponentBuilder(Style.GRAY + "Click to join the party.").create()
+				new ChatComponentBuilder(Style.YELLOW + "Click to join the party.").create()
 		);
 		final ClickEvent clickEvent =
 				new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/party join " + this.getLeader().getName());
@@ -156,7 +156,7 @@ public class Party extends Team<TeamPlayer> {
 
 			praxiPlayer.setParty(null);
 
-			if (praxiPlayer.getState() == PlayerState.IN_LOBBY) {
+			if (praxiPlayer.isInLobby()) {
 				praxiPlayer.loadLayout();
 			}
 		});

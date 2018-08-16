@@ -24,10 +24,11 @@ public class EventManager {
 
 		this.activeEvent = event;
 		this.activeEvent.handleStart();
+		this.activeEvent.handleJoin(event.getHost().toPlayer());
 	}
 
 	public void load() {
-		ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getMainConfig(), "events");
+		ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getMainConfig(), "event");
 
 		if (cursor.exists("sumo.spectator")) {
 			this.sumoSpectator = LocationUtil.deserialize(cursor.getString("sumo.spectator"));
@@ -43,7 +44,7 @@ public class EventManager {
 	}
 
 	public void save() {
-		ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getMainConfig(), "events");
+		ConfigCursor cursor = new ConfigCursor(Praxi.getInstance().getMainConfig(), "event");
 
 		if (this.sumoSpectator != null) {
 			cursor.set("sumo.spectator", LocationUtil.serialize(this.sumoSpectator));

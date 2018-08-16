@@ -6,10 +6,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.Getter;
+import lombok.Setter;
 import me.joeleoli.nucleus.chat.ChatComponentBuilder;
 import me.joeleoli.nucleus.cooldown.Cooldown;
 import me.joeleoli.nucleus.player.PlayerInfo;
 import me.joeleoli.nucleus.util.PlayerUtil;
+import me.joeleoli.nucleus.util.Style;
+import me.joeleoli.praxi.Praxi;
+import me.joeleoli.praxi.events.task.EventStartTask;
+import me.joeleoli.praxi.player.PlayerState;
+import me.joeleoli.praxi.player.PraxiPlayer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -20,11 +26,13 @@ import org.bukkit.entity.Player;
 public abstract class Event {
 
 	private String name;
+	@Setter
 	private EventState state = EventState.WAITING;
-	private EventTask runnable;
+	private EventTask eventTask;
 	private PlayerInfo host;
 	private Map<UUID, EventPlayer> eventPlayers = new HashMap<>();
 	private int maxPlayers;
+	@Setter
 	private Cooldown cooldown;
 
 	public Event(String name, PlayerInfo host, int maxPlayers) {
@@ -33,21 +41,21 @@ public abstract class Event {
 		this.maxPlayers = maxPlayers;
 	}
 
-	public abstract boolean isSumo();
+	public void setEventTask(EventTask task) {
+		if (this.eventTask != null) {
+			this.eventTask.cancel();
+		}
 
-	public abstract boolean isCorners();
+		this.eventTask = task;
 
-	public abstract void onRound();
+		if (this.eventTask != null) {
+			this.eventTask.runTaskTimer(Praxi.getInstance(), 0L, 20L);
+		}
+	}
 
-	public abstract void onJoin(Player player);
-
-	public abstract void onLeave(Player player);
-
-	public abstract String getRoundDuration();
-
-	public abstract EventPlayer getRoundPlayerA();
-
-	public abstract EventPlayer getRoundPlayerB();
+	public EventPlayer getEventPlayer(UUID uuid) {
+		return this.eventPlayers.get(uuid);
+	}
 
 	public List<Player> getPlayers() {
 		List<Player> players = new ArrayList<>();
@@ -68,24 +76,53 @@ public abstract class Event {
 	}
 
 	public void handleStart() {
-		this.cooldown = new Cooldown(60_000);
-		this.runnable = new EventTask(this);
+		this.setEventTask(new EventStartTask(this));
 	}
 
 	public void handleJoin(Player player) {
-		PlayerUtil.reset(player);
-
 		this.eventPlayers.put(player.getUniqueId(), new EventPlayer(player));
+
+		final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+
+		praxiPlayer.setEvent(this);
+		praxiPlayer.setState(PlayerState.IN_EVENT);
+		praxiPlayer.loadLayout();
+
+		this.broadcast(Style.GOLD + Style.BOLD + "[Event] " + Style.PINK + player.getName() + Style.YELLOW +
+		               " joined the event " + Style.PINK + "(" + this.getPlayerCount() + "/" + this.getMaxPlayers() +
+		               ")");
+
+		player.teleport(Praxi.getInstance().getEventManager().getSumoSpectator());
 
 		this.onJoin(player);
 	}
 
 	public void handleDeath(Player player) {
-		if (player.getUniqueId().equals(this.getRoundPlayerA().getUuid())) {
+		this.getEventPlayer(player.getUniqueId()).setState(EventPlayerState.ELIMINATED);
+	}
 
-		} else if (player.getUniqueId().equals(this.getRoundPlayerB().getUuid())) {
-
+	public void handleLeave(Player player) {
+		if (player.getUniqueId().equals(this.getRoundPlayerA().getUuid()) ||
+		    player.getUniqueId().equals(this.getRoundPlayerB().getUuid())) {
+			this.handleDeath(player);
 		}
+
+		this.eventPlayers.remove(player.getUniqueId());
+
+		PlayerUtil.spawn(player);
+
+		final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+
+		praxiPlayer.setState(PlayerState.IN_LOBBY);
+		praxiPlayer.loadLayout();
+
+		if (this.state == EventState.WAITING) {
+			this.broadcast(Style.GOLD + Style.BOLD + "[Event] " + Style.PINK + player.getName() + Style.YELLOW +
+			               " left the event " + Style.PINK + "(" + this.getPlayerCount() + "/" + this.getMaxPlayers() +
+			               ")");
+		}
+
+		this.onLeave(player);
 	}
 
 	public void end() {
@@ -116,11 +153,14 @@ public abstract class Event {
 
 	public void announce() {
 		BaseComponent[] components = new ChatComponentBuilder("")
-				.parse("&6&l[Event] &r" + this.getHost().getDisplayName() +
-				       " &eis hosting a &6&lSumo Event&e! &7[Click to join]")
-				.attachToEachPart(
-						new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentBuilder("").parse("").create()))
-				.attachToEachPart(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/events join"))
+				.parse(Style.GOLD + Style.BOLD + "[Event] " + Style.RESET + Style.PINK + this.getHost().getName() +
+				       Style.YELLOW + " is hosting a " + Style.PINK + "Sumo Event " + Style.GREEN +
+				       "[Click to join]")
+				.attachToEachPart(new HoverEvent(
+						HoverEvent.Action.SHOW_TEXT,
+						new ChatComponentBuilder("").parse(Style.YELLOW + "Click to join the Sumo event.").create()
+				))
+				.attachToEachPart(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/event join"))
 				.create();
 
 		for (Player player : Bukkit.getOnlinePlayers()) {
@@ -133,5 +173,21 @@ public abstract class Event {
 			player.sendMessage(message);
 		}
 	}
+
+	public abstract boolean isSumo();
+
+	public abstract boolean isCorners();
+
+	public abstract void onJoin(Player player);
+
+	public abstract void onLeave(Player player);
+
+	public abstract void onRound();
+
+	public abstract String getRoundDuration();
+
+	public abstract EventPlayer getRoundPlayerA();
+
+	public abstract EventPlayer getRoundPlayerB();
 
 }

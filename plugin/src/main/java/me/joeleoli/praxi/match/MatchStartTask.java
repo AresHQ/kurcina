@@ -1,6 +1,7 @@
 package me.joeleoli.praxi.match;
 
 import me.joeleoli.fairfight.FairFight;
+import me.joeleoli.nucleus.util.PlayerUtil;
 import me.joeleoli.nucleus.util.Style;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -9,7 +10,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 public class MatchStartTask extends BukkitRunnable {
 
 	private Match match;
-	private int tick;
+	private int ticks;
 
 	public MatchStartTask(Match match) {
 		this.match = match;
@@ -17,7 +18,7 @@ public class MatchStartTask extends BukkitRunnable {
 
 	@Override
 	public void run() {
-		int seconds = 5 - this.tick;
+		int seconds = 5 - this.ticks;
 
 		if (this.match.isEnding()) {
 			this.cancel();
@@ -33,13 +34,13 @@ public class MatchStartTask extends BukkitRunnable {
 					if (playerA != null) {
 						FairFight.getInstance().getPlayerDataManager().getPlayerData(playerA).setAllowTeleport(false);
 
-						playerA.setWalkSpeed(0.2F);
+						PlayerUtil.allowMovement(playerA);
 					}
 
 					if (playerB != null) {
 						FairFight.getInstance().getPlayerDataManager().getPlayerData(playerB).setAllowTeleport(false);
 
-						playerB.setWalkSpeed(0.2F);
+						PlayerUtil.allowMovement(playerB);
 					}
 				} else if (this.match.isTeamMatch()) {
 					this.match.getMatchPlayers().forEach(matchPlayer -> {
@@ -50,7 +51,7 @@ public class MatchStartTask extends BukkitRunnable {
 								FairFight.getInstance().getPlayerDataManager().getPlayerData(player)
 								         .setAllowTeleport(false);
 
-								player.setWalkSpeed(0.2F);
+								PlayerUtil.allowMovement(player);
 							}
 						}
 					});
@@ -82,7 +83,7 @@ public class MatchStartTask extends BukkitRunnable {
 			this.match.broadcast(Sound.NOTE_PLING);
 		}
 
-		this.tick++;
+		this.ticks++;
 	}
 
 }

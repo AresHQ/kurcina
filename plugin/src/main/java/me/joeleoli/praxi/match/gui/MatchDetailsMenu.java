@@ -94,7 +94,7 @@ public class MatchDetailsMenu extends Menu {
 		@Override
 		public ItemStack getButtonItem(Player player) {
 			return new ItemBuilder(Material.LEVER)
-					.name(Style.YELLOW + "Opponent Inventory")
+					.name(Style.YELLOW + Style.BOLD + "Opponent's Inventory")
 					.lore(Style.YELLOW + "Switch to " + Style.PINK + this.switchTo.getName() + Style.YELLOW +
 					      "'s inventory")
 					.build();
@@ -115,7 +115,7 @@ public class MatchDetailsMenu extends Menu {
 		@Override
 		public ItemStack getButtonItem(Player player) {
 			return new ItemBuilder(Material.MELON)
-					.name(Style.YELLOW + "Health: " + Style.PINK + this.health + "/10 " + Style.UNICODE_HEART)
+					.name(Style.YELLOW + Style.BOLD + "Health: " + Style.PINK + this.health + "/10 " + Style.UNICODE_HEART)
 					.amount(this.health == 0 ? 1 : this.health)
 					.build();
 		}
@@ -130,7 +130,7 @@ public class MatchDetailsMenu extends Menu {
 		@Override
 		public ItemStack getButtonItem(Player player) {
 			return new ItemBuilder(Material.COOKED_BEEF)
-					.name(Style.YELLOW + "Hunger: " + Style.PINK + this.hunger + "/20")
+					.name(Style.YELLOW + Style.BOLD + "Hunger: " + Style.PINK + this.hunger + "/20")
 					.amount(this.hunger == 0 ? 1 : this.hunger)
 					.build();
 		}
@@ -178,7 +178,7 @@ public class MatchDetailsMenu extends Menu {
 			return new ItemBuilder(Material.POTION)
 					.durability(16421)
 					.amount(this.potions == 0 ? 1 : this.potions)
-					.name(Style.YELLOW + "Potions")
+					.name(Style.YELLOW + Style.BOLD + "Potions")
 					.lore(Style.PINK + this.name + Style.YELLOW + " had " + Style.PINK + this.potions + Style.YELLOW +
 					      " potion" + (this.potions == 1 ? "" : "s") + " left.")
 					.build();
@@ -194,7 +194,7 @@ public class MatchDetailsMenu extends Menu {
 		@Override
 		public ItemStack getButtonItem(Player player) {
 			return new ItemBuilder(Material.PAPER)
-					.name(Style.YELLOW + "Statistics")
+					.name(Style.YELLOW + Style.BOLD + "Statistics")
 					.lore(Arrays.asList(
 							Style.PINK + "Hits: " + Style.RESET + this.matchPlayer.getHits(),
 							Style.PINK + "Longest Combo: " + Style.RESET + this.matchPlayer.getLongestCombo(),

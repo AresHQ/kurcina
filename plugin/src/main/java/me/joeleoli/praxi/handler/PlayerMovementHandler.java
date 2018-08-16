@@ -1,5 +1,7 @@
 package me.joeleoli.praxi.handler;
 
+import me.joeleoli.praxi.events.Event;
+import me.joeleoli.praxi.events.EventState;
 import me.joeleoli.praxi.match.Match;
 import me.joeleoli.praxi.match.MatchState;
 import me.joeleoli.praxi.player.PraxiPlayer;
@@ -62,6 +64,20 @@ public class PlayerMovementHandler implements MovementHandler {
 					}
 
 					player.teleport(teleportTo);
+				}
+			}
+		} else if (praxiPlayer.isInEvent()) {
+			final Event event = praxiPlayer.getEvent();
+
+			if (event.isSumo()) {
+				if (event.getState() == EventState.ROUND_FIGHTING) {
+					if (praxiPlayer.getUuid().equals(event.getRoundPlayerA().getUuid()) ||
+					    praxiPlayer.getUuid().equals(event.getRoundPlayerB().getUuid())) {
+						if (player.getLocation().getBlock().getType() == Material.WATER ||
+						    player.getLocation().getBlock().getType() == Material.STATIONARY_WATER) {
+							event.handleDeath(player);
+						}
+					}
 				}
 			}
 		}

@@ -8,7 +8,6 @@ import me.joeleoli.nucleus.command.param.Parameter;
 import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.praxi.party.Party;
 import me.joeleoli.praxi.party.PartyState;
-import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.player.PraxiPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -47,7 +46,7 @@ public class PartyCommands {
 			return;
 		}
 
-		if (praxiPlayer.getState() != PlayerState.IN_LOBBY) {
+		if (!praxiPlayer.isInLobby()) {
 			player.sendMessage(Style.RED + "You must be in the lobby to create a party.");
 			return;
 		}

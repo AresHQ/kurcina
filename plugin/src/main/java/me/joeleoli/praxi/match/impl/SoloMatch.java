@@ -31,13 +31,15 @@ public class SoloMatch extends Match {
 	private int playerBRoundWins = 0;
 	private boolean duel;
 
-	public SoloMatch(MatchPlayer playerA, MatchPlayer playerB, Ladder ladder, Arena arena, boolean ranked, boolean duel) {
+	public SoloMatch(MatchPlayer playerA, MatchPlayer playerB, Ladder ladder, Arena arena, boolean ranked,
+			boolean duel) {
 		this(null, playerA, playerB, ladder, arena, ranked, duel);
 
 		this.duel = duel;
 	}
 
-	public SoloMatch(UUID queueId, MatchPlayer playerA, MatchPlayer playerB, Ladder ladder, Arena arena, boolean ranked, boolean duel) {
+	public SoloMatch(UUID queueId, MatchPlayer playerA, MatchPlayer playerB, Ladder ladder, Arena arena, boolean ranked,
+			boolean duel) {
 		super(queueId, ladder, arena, ranked);
 
 		this.playerA = playerA;
@@ -371,8 +373,8 @@ public class SoloMatch extends Match {
 
 			if (this.canEnd()) {
 				final String broadcast =
-						roundWinner.getDisplayName() + Style.YELLOW + " has " + Style.GREEN + "won" + Style.YELLOW +
-						" the match.";
+						Style.PINK + roundWinner.getName() + Style.YELLOW + " has " + Style.GREEN + "won" +
+						Style.YELLOW + " the match.";
 
 				this.setState(MatchState.ENDING);
 				this.broadcast(broadcast);
@@ -380,9 +382,9 @@ public class SoloMatch extends Match {
 				this.getSpectators().forEach(other -> other.hidePlayer(player));
 			} else {
 				final String broadcast =
-						roundWinner.getDisplayName() + Style.YELLOW + " has " + Style.GREEN + "won" + Style.YELLOW +
-						" the round, they need " + Style.GOLD + this.getRoundsNeeded(roundWinner) + Style.YELLOW +
-						" more to win.";
+						Style.PINK + roundWinner.getName() + Style.YELLOW + " has " + Style.GREEN + "won" +
+						Style.YELLOW + " the round, they need " + Style.GOLD + this.getRoundsNeeded(roundWinner) +
+						Style.YELLOW + " more to win.";
 
 				this.broadcast(broadcast);
 				this.handleStart();

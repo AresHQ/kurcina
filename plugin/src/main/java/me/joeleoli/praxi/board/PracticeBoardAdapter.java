@@ -8,8 +8,9 @@ import me.joeleoli.nucleus.board.BoardAdapter;
 import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.nucleus.util.TimeUtil;
 import me.joeleoli.praxi.Praxi;
+import me.joeleoli.praxi.events.Event;
+import me.joeleoli.praxi.events.EventState;
 import me.joeleoli.praxi.match.Match;
-import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.player.PracticeSetting;
 import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.praxi.queue.Queue;
@@ -21,7 +22,7 @@ public class PracticeBoardAdapter implements BoardAdapter {
 
 	@Override
 	public String getTitle(Player player) {
-		return Style.SECONDARY + Style.BOLD + "MineXD   ";
+		return Style.PINK + Style.BOLD + "MineXD   ";
 	}
 
 	@Override
@@ -34,26 +35,26 @@ public class PracticeBoardAdapter implements BoardAdapter {
 
 		final List<String> toReturn = new ArrayList<>();
 
-		if (praxiPlayer.getState() == PlayerState.IN_LOBBY) {
-			toReturn.add("Online: " + Style.SECONDARY + Bukkit.getOnlinePlayers().size());
-			toReturn.add("Fighting: " + Style.SECONDARY + Praxi.getInstance().getFightingCount());
-			toReturn.add("Queueing: " + Style.SECONDARY + Praxi.getInstance().getQueueingCount());
+		if (praxiPlayer.isInLobby()) {
+			toReturn.add("Online: " + Style.PINK + Bukkit.getOnlinePlayers().size());
+			toReturn.add("Fighting: " + Style.PINK + Praxi.getInstance().getFightingCount());
+			toReturn.add("Queueing: " + Style.PINK + Praxi.getInstance().getQueueingCount());
 
 			if (praxiPlayer.getParty() != null) {
-				toReturn.add("Your Party: " + Style.SECONDARY + praxiPlayer.getParty().getTeamPlayers().size());
+				toReturn.add("Your Party: " + Style.PINK + praxiPlayer.getParty().getTeamPlayers().size());
 			}
 		} else if (praxiPlayer.isInQueue()) {
 			final Queue queue = praxiPlayer.getQueuePlayer().getQueue();
 
 			toReturn.add("Queue:");
-			toReturn.add(" " + Style.SECONDARY + (queue.isRanked() ? "Ranked" : "Unranked") + " " +
+			toReturn.add(" " + Style.PINK + (queue.isRanked() ? "Ranked" : "Unranked") + " " +
 			             queue.getLadder().getName());
 			toReturn.add("Time:");
-			toReturn.add(" " + Style.SECONDARY + TimeUtil.millisToTimer(praxiPlayer.getQueuePlayer().getPassed()));
+			toReturn.add(" " + Style.PINK + TimeUtil.millisToTimer(praxiPlayer.getQueuePlayer().getPassed()));
 
 			if (queue.isRanked()) {
 				toReturn.add("Range:");
-				toReturn.add(" " + Style.SECONDARY + praxiPlayer.getQueuePlayer().getMinRange() + " -> " +
+				toReturn.add(" " + Style.PINK + praxiPlayer.getQueuePlayer().getMinRange() + " -> " +
 				             praxiPlayer.getQueuePlayer().getMaxRange());
 			}
 		} else if (praxiPlayer.isInMatch()) {
@@ -64,21 +65,21 @@ public class PracticeBoardAdapter implements BoardAdapter {
 			}
 
 			if (match.isSoloMatch()) {
-				toReturn.add("Opponent: " + Style.SECONDARY + match.getOpponentMatchPlayer(player).getName());
-				toReturn.add("Duration: " + Style.SECONDARY + match.getDuration());
+				toReturn.add("Opponent: " + Style.PINK + match.getOpponentMatchPlayer(player).getName());
+				toReturn.add("Duration: " + Style.PINK + match.getDuration());
 
 				if (match.isFighting()) {
 					toReturn.add("");
-					toReturn.add("Your Ping: " + Style.SECONDARY + player.getPing() + "ms");
-					toReturn.add("Their Ping: " + Style.SECONDARY + match.getOpponentPlayer(player).getPing() + "ms");
+					toReturn.add("Your Ping: " + Style.PINK + player.getPing() + "ms");
+					toReturn.add("Their Ping: " + Style.PINK + match.getOpponentPlayer(player).getPing() + "ms");
 				}
 			} else if (match.isTeamMatch()) {
-				toReturn.add("Duration: " + Style.SECONDARY + match.getDuration());
-				toReturn.add("Opponents: " + Style.SECONDARY + match.getOpponentsLeft(player) + "/" +
+				toReturn.add("Duration: " + Style.PINK + match.getDuration());
+				toReturn.add("Opponents: " + Style.PINK + match.getOpponentsLeft(player) + "/" +
 				             match.getOpponentTeam(player).getTeamPlayers().size());
 
 				if (match.getTeam(player).getTeamPlayers().size() >= 8) {
-					toReturn.add("Your Team: " + Style.SECONDARY + match.getTeam(player).getTeamPlayers().size());
+					toReturn.add("Your Team: " + Style.PINK + match.getTeam(player).getTeamPlayers().size());
 				} else {
 					toReturn.add("");
 					toReturn.add("Your Team:");
@@ -92,12 +93,8 @@ public class PracticeBoardAdapter implements BoardAdapter {
 		} else if (praxiPlayer.isSpectating()) {
 			final Match match = praxiPlayer.getMatch();
 
-			if (match == null) {
-				return null;
-			}
-
-			toReturn.add("Ladder: " + Style.SECONDARY + match.getLadder().getName());
-			toReturn.add("Duration: " + Style.SECONDARY + match.getDuration());
+			toReturn.add("Ladder: " + Style.PINK + match.getLadder().getName());
+			toReturn.add("Duration: " + Style.PINK + match.getDuration());
 			toReturn.add("");
 
 			if (match.isSoloMatch()) {
@@ -107,11 +104,30 @@ public class PracticeBoardAdapter implements BoardAdapter {
 				toReturn.add(" " + match.getTeamA().getLeader().getName() + "'s Team");
 				toReturn.add(" " + match.getTeamA().getLeader().getName() + "'s Team");
 			}
+		} else if (praxiPlayer.isInEvent()) {
+			final Event event = praxiPlayer.getEvent();
+
+			toReturn.add("Event: " + Style.PINK + "Sumo");
+			toReturn.add("Players: " + Style.PINK + event.getEventPlayers().size() + "/" + event.getMaxPlayers());
+			toReturn.add("");
+
+			if (event.getState() == EventState.WAITING) {
+				if (event.getCooldown() == null) {
+					toReturn.add(Style.GRAY + Style.ITALIC + "Waiting for players...");
+				} else {
+					toReturn.add(Style.GRAY + Style.ITALIC + "Starting in " + TimeUtil.millisToSeconds(event.getCooldown().getRemaining()) + "s");
+				}
+			} else {
+				toReturn.add("Duration: " + Style.PINK + event.getRoundDuration());
+				toReturn.add("Fighters:");
+				toReturn.add(" " + Style.PINK + event.getRoundPlayerA().getName() + Style.GRAY + " (" + event.getRoundPlayerA().toPlayer().getPing() + ")");
+				toReturn.add(" " + Style.PINK + event.getRoundPlayerB().getName() + Style.GRAY + " (" + event.getRoundPlayerB().toPlayer().getPing() + ")");
+			}
 		}
 
 		toReturn.add(0, Style.BORDER_LINE_SCOREBOARD);
 		toReturn.add("");
-		toReturn.add(Style.SECONDARY + "minexd.com");
+		toReturn.add(Style.PINK + "minexd.com");
 		toReturn.add(Style.BORDER_LINE_SCOREBOARD);
 
 		return toReturn;

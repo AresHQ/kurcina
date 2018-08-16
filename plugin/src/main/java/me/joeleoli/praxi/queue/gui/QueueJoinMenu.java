@@ -79,20 +79,20 @@ public class QueueJoinMenu extends Menu {
 				}
 			}
 
-			lore.add(Style.SECONDARY + Style.UNDER_LINE + "Ranked");
-			lore.add(" " + Style.PRIMARY + "In fights: " + Style.RESET + rankedFighting);
-			lore.add(" " + Style.PRIMARY + "In queue: " + Style.RESET + rankedQueueing);
+			lore.add(Style.PINK + Style.UNDER_LINE + "Ranked");
+			lore.add(" " + Style.YELLOW + "In fights: " + Style.RESET + rankedFighting);
+			lore.add(" " + Style.YELLOW + "In queue: " + Style.RESET + rankedQueueing);
 			lore.add("");
-			lore.add(Style.SECONDARY + Style.UNDER_LINE + "Unranked");
-			lore.add(" " + Style.PRIMARY + "In fights: " + Style.RESET + unrankedFighting);
-			lore.add(" " + Style.PRIMARY + "In queue: " + Style.RESET + unrankedQueueing);
+			lore.add(Style.PINK + Style.UNDER_LINE + "Unranked");
+			lore.add(" " + Style.YELLOW + "In fights: " + Style.RESET + unrankedFighting);
+			lore.add(" " + Style.YELLOW + "In queue: " + Style.RESET + unrankedQueueing);
 			lore.add("");
 
-			lore.add(Style.PRIMARY + "Click here to select " + Style.SECONDARY + Style.BOLD +
-			         this.queue.getLadder().getName() + Style.PRIMARY + ".");
+			lore.add(Style.YELLOW + "Click here to select " + Style.PINK + Style.BOLD +
+			         this.queue.getLadder().getName() + Style.YELLOW + ".");
 
 			return new ItemBuilder(this.queue.getLadder().getDisplayIcon())
-					.name(Style.SECONDARY + Style.BOLD + this.queue.getLadder().getName()).lore(lore)
+					.name(Style.PINK + Style.BOLD + this.queue.getLadder().getName()).lore(lore)
 					.build();
 		}
 
@@ -104,7 +104,7 @@ public class QueueJoinMenu extends Menu {
 				return;
 			}
 
-			if (praxiPlayer.getState() != PlayerState.IN_LOBBY) {
+			if (!praxiPlayer.isInLobby()) {
 				player.sendMessage(Style.RED + "You must be in the lobby to join a queue.");
 				return;
 			}

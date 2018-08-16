@@ -64,11 +64,11 @@ public class PartyEventSelectLadderMenu extends Menu {
 		@Override
 		public ItemStack getButtonItem(Player player) {
 			return new ItemBuilder(this.ladder.getDisplayIcon())
-					.name(Style.SECONDARY + Style.BOLD + this.ladder.getName())
+					.name(Style.PINK + Style.BOLD + this.ladder.getName())
 					.lore(Arrays.asList(
 							"",
-							Style.PRIMARY + "Click here to select " + Style.SECONDARY + Style.BOLD +
-							this.ladder.getDisplayName() + Style.PRIMARY + "."
+							Style.YELLOW + "Click here to select " + Style.PINK + Style.BOLD +
+							this.ladder.getDisplayName() + Style.YELLOW + "."
 					))
 					.build();
 		}
@@ -91,7 +91,7 @@ public class PartyEventSelectLadderMenu extends Menu {
 			}
 
 			if (praxiPlayer.getParty().getTeamPlayers().size() <= 1) {
-				player.sendMessage(Style.RED + "You do not have enough players in your party to start an events.");
+				player.sendMessage(Style.RED + "You do not have enough players in your party to start an event.");
 				return;
 			}
 
@@ -108,7 +108,7 @@ public class PartyEventSelectLadderMenu extends Menu {
 			Match match;
 
 			if (party.getSelectedEvent() == PartyEvent.FFA) {
-				player.sendMessage(Style.RED + "The FFA party events is currently disabled.");
+				player.sendMessage(Style.RED + "The FFA party event is currently disabled.");
 				return;
 			} else {
 				MatchTeam teamA = new MatchTeam(new MatchPlayer(party.getLeader().toPlayer()));

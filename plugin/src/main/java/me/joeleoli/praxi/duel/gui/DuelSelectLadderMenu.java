@@ -51,11 +51,11 @@ public class DuelSelectLadderMenu extends Menu {
 		@Override
 		public ItemStack getButtonItem(Player player) {
 			return new ItemBuilder(this.ladder.getDisplayIcon())
-					.name(Style.SECONDARY + Style.BOLD + this.ladder.getName())
+					.name(Style.PINK + Style.BOLD + this.ladder.getName())
 					.lore(Arrays.asList(
 							"",
-							Style.PRIMARY + "Click here to select " + Style.SECONDARY + Style.BOLD +
-							this.ladder.getName() + Style.PRIMARY + "."
+							Style.YELLOW + "Click here to select " + Style.PINK + Style.BOLD +
+							this.ladder.getName() + Style.YELLOW + "."
 					))
 					.build();
 		}

@@ -19,7 +19,7 @@ public class PartyEventSelectEventMenu extends Menu {
 
 	@Override
 	public String getTitle(Player player) {
-		return Style.BLUE + Style.BOLD + "Select an events...";
+		return Style.BLUE + Style.BOLD + "Select an event...";
 	}
 
 	@Override
