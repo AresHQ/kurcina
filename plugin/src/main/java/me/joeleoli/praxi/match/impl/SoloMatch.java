@@ -15,6 +15,7 @@ import me.joeleoli.praxi.match.MatchPlayer;
 import me.joeleoli.praxi.match.MatchSnapshot;
 import me.joeleoli.praxi.match.MatchState;
 import me.joeleoli.praxi.match.MatchTeam;
+import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.player.PraxiPlayer;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -62,7 +63,11 @@ public class SoloMatch extends Match {
 		if (this.getTotalRoundWins() == 0) {
 			for (MatchPlayer matchPlayer : new MatchPlayer[]{ this.playerA, this.playerB }) {
 				final Player player = matchPlayer.toPlayer();
+				final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 				final MatchPlayer opponent = this.getOpponentMatchPlayer(player);
+
+				praxiPlayer.setState(PlayerState.IN_MATCH);
+				praxiPlayer.setMatch(this);
 
 				final StringBuilder builder = new StringBuilder()
 						.append(Style.YELLOW)
@@ -85,7 +90,7 @@ public class SoloMatch extends Match {
 					} else {
 						builder.append(" a ")
 						       .append(Style.PINK)
-						       .append("Unranked")
+						       .append("Unranked ")
 						       .append(this.getLadder().getName())
 						       .append(Style.YELLOW)
 						       .append(" match ");
@@ -247,7 +252,20 @@ public class SoloMatch extends Match {
 
 	@Override
 	public List<Player> getPlayers() {
-		throw new UnsupportedOperationException("Cannot get match players from a SoloMatch");
+		final List<Player> players = new ArrayList<>();
+
+		final Player playerA = this.playerA.toPlayer();
+		final Player playerB = this.playerB.toPlayer();
+
+		if (playerA != null) {
+			players.add(playerA);
+		}
+
+		if (playerB != null) {
+			players.add(playerB);
+		}
+
+		return players;
 	}
 
 	@Override
@@ -377,7 +395,7 @@ public class SoloMatch extends Match {
 						Style.YELLOW + " the match.";
 
 				this.setState(MatchState.ENDING);
-				this.broadcast(broadcast);
+				this.broadcastMessage(broadcast);
 				this.getOpponentPlayer(player).hidePlayer(player);
 				this.getSpectators().forEach(other -> other.hidePlayer(player));
 			} else {
@@ -386,7 +404,7 @@ public class SoloMatch extends Match {
 						Style.YELLOW + " the round, they need " + Style.GOLD + this.getRoundsNeeded(roundWinner) +
 						Style.YELLOW + " more to win.";
 
-				this.broadcast(broadcast);
+				this.broadcastMessage(broadcast);
 				this.handleStart();
 			}
 		}

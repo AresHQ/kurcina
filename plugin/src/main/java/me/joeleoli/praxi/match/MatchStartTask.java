@@ -59,28 +59,29 @@ public class MatchStartTask extends BukkitRunnable {
 
 				this.match.setState(MatchState.FIGHTING);
 				this.match.setStartTimestamp(System.currentTimeMillis());
-				this.match.broadcast(Style.YELLOW + "The round has started!");
-				this.match.broadcast(Sound.NOTE_BASS);
+				this.match.broadcastMessage(Style.YELLOW + "The round has started!");
+				this.match.broadcastSound(Sound.NOTE_BASS);
 				this.cancel();
 				return;
 			}
 
-			this.match.broadcast(Style.YELLOW + "The round will start in " + Style.PINK + (seconds - 2) + " second" +
-			                     (seconds - 2 == 1 ? "" : "s") + Style.YELLOW + "...");
-			this.match.broadcast(Sound.NOTE_PLING);
+			this.match.broadcastMessage(
+					Style.YELLOW + "The round will start in " + Style.PINK + (seconds - 2) + " second" +
+					(seconds - 2 == 1 ? "" : "s") + Style.YELLOW + "...");
+			this.match.broadcastSound(Sound.NOTE_PLING);
 		} else {
 			if (seconds == 0) {
 				this.match.setState(MatchState.FIGHTING);
 				this.match.setStartTimestamp(System.currentTimeMillis());
-				this.match.broadcast(Style.YELLOW + "The match has started!");
-				this.match.broadcast(Sound.NOTE_BASS);
+				this.match.broadcastMessage(Style.YELLOW + "The match has started!");
+				this.match.broadcastSound(Sound.NOTE_BASS);
 				this.cancel();
 				return;
 			}
 
-			this.match.broadcast(Style.YELLOW + "The match will start in " + Style.PINK + seconds + " second" +
-			                     (seconds == 1 ? "" : "s") + Style.YELLOW + "...");
-			this.match.broadcast(Sound.NOTE_PLING);
+			this.match.broadcastMessage(Style.YELLOW + "The match will start in " + Style.PINK + seconds + " second" +
+			                            (seconds == 1 ? "" : "s") + Style.YELLOW + "...");
+			this.match.broadcastSound(Sound.NOTE_PLING);
 		}
 
 		this.ticks++;

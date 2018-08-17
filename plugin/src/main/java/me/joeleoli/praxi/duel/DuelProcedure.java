@@ -41,7 +41,7 @@ public class DuelProcedure {
 
 		final HoverEvent hoverEvent = new HoverEvent(
 				HoverEvent.Action.SHOW_TEXT,
-				new ChatComponentBuilder(Style.GRAY + "Click to accept this duel invite.").create()
+				new ChatComponentBuilder(Style.YELLOW + "Click to accept this duel invite.").create()
 		);
 		final ClickEvent clickEvent =
 				new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/duel accept " + this.sender.getName());

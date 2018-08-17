@@ -56,23 +56,10 @@ public class TeamMatch extends Match {
 				final Player player = matchPlayer.toPlayer();
 				final MatchTeam opponent = this.getOpponentTeam(player);
 
-				final StringBuilder builder = new StringBuilder()
-						.append(Style.YELLOW)
-						.append("Starting a ")
-						.append(this.getLadder().getDisplayName())
-						.append(Style.YELLOW)
-						.append(" match against ")
-						.append(Style.PINK)
-						.append(opponent.getLeader().getName())
-						.append("'s team")
-						.append(Style.YELLOW)
-						.append(" on ")
-						.append(Style.PINK)
-						.append(this.getArena().getName())
-						.append(Style.YELLOW)
-						.append(".");
-
-				player.sendMessage(builder.toString());
+				player.sendMessage(
+						Style.YELLOW + "Starting a " + Style.PINK + this.getLadder().getName() + Style.YELLOW +
+						" match against " + Style.PINK + opponent.getLeader().getName() + "'s team" + Style.YELLOW +
+						" on " + Style.PINK + this.getArena().getName() + Style.YELLOW + ".");
 			}
 		}
 	}
@@ -121,10 +108,12 @@ public class TeamMatch extends Match {
 					.color(ChatColor.YELLOW);
 		}
 
-		winnerInventories.getCurrent().setText(winnerInventories.getCurrent().getText().substring(0,
+		winnerInventories.getCurrent().setText(winnerInventories.getCurrent().getText().substring(
+				0,
 				winnerInventories.getCurrent().getText().length() - 2
 		));
-		loserInventories.getCurrent().setText(loserInventories.getCurrent().getText().substring(0,
+		loserInventories.getCurrent().setText(loserInventories.getCurrent().getText().substring(
+				0,
 				loserInventories.getCurrent().getText().length() - 2
 		));
 
@@ -380,7 +369,7 @@ public class TeamMatch extends Match {
 
 	@Override
 	public void onDeath(Player player, Player killer) {
-		//        TODO: send teams messages directly then send global messages to spectators
+		//        TODO: request teams messages directly then request global messages to spectators
 		//        MatchTeam roundLoser = this.getOpponentTeam(player);
 
 		this.getSnapshots().add(new MatchSnapshot(this.getMatchPlayer(player)));
@@ -413,7 +402,7 @@ public class TeamMatch extends Match {
 							"won" + Style.YELLOW + " the round, they need " + Style.GOLD +
 							this.getRoundsNeeded(roundWinner) + Style.YELLOW + " more to win.";
 
-					this.broadcast(broadcast);
+					this.broadcastMessage(broadcast);
 					this.handleStart();
 				}
 			} else {

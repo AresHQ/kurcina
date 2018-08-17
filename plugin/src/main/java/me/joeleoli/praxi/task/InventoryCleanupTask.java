@@ -6,9 +6,8 @@ public class InventoryCleanupTask implements Runnable {
 
 	@Override
 	public void run() {
-		MatchSnapshot.getCache().entrySet().removeIf(entry -> System.currentTimeMillis() - entry.getValue()
-		                                                                                        .getCreated() >=
-		                                                      45_000);
+		MatchSnapshot.getCache().entrySet()
+		             .removeIf(entry -> System.currentTimeMillis() - entry.getValue().getCreated() >= 45_000);
 	}
 
 }

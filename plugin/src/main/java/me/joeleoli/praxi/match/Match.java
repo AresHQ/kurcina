@@ -18,6 +18,7 @@ import me.joeleoli.praxi.arena.Arena;
 import me.joeleoli.praxi.ladder.Ladder;
 import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.player.PraxiPlayer;
+import me.joeleoli.praxi.player.RematchData;
 import me.joeleoli.ragespigot.RageSpigot;
 import me.joeleoli.ragespigot.knockback.KnockbackProfile;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -70,68 +71,6 @@ public abstract class Match {
 
 		matches.add(this);
 	}
-
-	public abstract boolean isDuel();
-
-	public abstract boolean isSoloMatch();
-
-	public abstract boolean isTeamMatch();
-
-	public abstract void onStart();
-
-	public abstract void onEnd();
-
-	public abstract void onDeath(Player player, Player killer);
-
-	public abstract void onRespawn(Player player);
-
-	public abstract boolean canEnd();
-
-	public abstract Player getWinningPlayer();
-
-	public abstract MatchTeam getWinningTeam();
-
-	public abstract MatchPlayer getMatchPlayerA();
-
-	public abstract MatchPlayer getMatchPlayerB();
-
-	public abstract List<MatchPlayer> getMatchPlayers();
-
-	public abstract Player getPlayerA();
-
-	public abstract Player getPlayerB();
-
-	public abstract List<Player> getPlayers();
-
-	public abstract MatchTeam getTeamA();
-
-	public abstract MatchTeam getTeamB();
-
-	public abstract MatchTeam getTeam(MatchPlayer matchPlayer);
-
-	public abstract MatchTeam getTeam(Player player);
-
-	public abstract MatchPlayer getMatchPlayer(Player player);
-
-	public abstract int getOpponentsLeft(Player player);
-
-	public abstract MatchTeam getOpponentTeam(MatchTeam matchTeam);
-
-	public abstract MatchTeam getOpponentTeam(Player player);
-
-	public abstract MatchPlayer getOpponentMatchPlayer(Player player);
-
-	public abstract Player getOpponentPlayer(Player player);
-
-	public abstract int getTotalRoundWins();
-
-	public abstract int getRoundWins(MatchPlayer matchPlayer);
-
-	public abstract int getRoundWins(MatchTeam matchTeam);
-
-	public abstract int getRoundsNeeded(MatchPlayer matchPlayer);
-
-	public abstract int getRoundsNeeded(MatchTeam matchTeam);
 
 	public boolean isMatchMakingMatch() {
 		return this.queueId != null;
@@ -385,27 +324,34 @@ public abstract class Match {
 
 		TaskUtil.runLater(() -> {
 			if (this.isSoloMatch()) {
+				final UUID rematchKey = UUID.randomUUID();
 				final Player playerA = this.getPlayerA();
 				final Player playerB = this.getPlayerB();
 
-				NameTagHandler.removeFromTeams(playerA, playerB);
-				NameTagHandler.removeFromTeams(playerB, playerA);
-				NameTagHandler.removeHealthDisplay(playerA);
-				NameTagHandler.removeHealthDisplay(playerB);
+				if (playerA != null && playerB != null) {
+					NameTagHandler.removeFromTeams(playerA, playerB);
+					NameTagHandler.removeFromTeams(playerB, playerA);
+					NameTagHandler.removeHealthDisplay(playerA);
+					NameTagHandler.removeHealthDisplay(playerB);
+				}
 
 				for (MatchPlayer matchPlayer : new MatchPlayer[]{ this.getMatchPlayerA(), this.getMatchPlayerB() }) {
 					final Player player = matchPlayer.toPlayer();
 
 					if (player != null) {
-						final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+						player.setKnockbackProfile(null);
 
-						PlayerUtil.spawn(player);
+						final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
 						praxiPlayer.setState(PlayerState.IN_LOBBY);
 						praxiPlayer.setMatch(null);
 						praxiPlayer.setEnderpearlCooldown(null);
+						praxiPlayer.setRematchData(new RematchData(rematchKey, player.getUniqueId(),
+								this.getOpponentPlayer(player).getUniqueId(), this.getLadder(), this.getArena()
+						));
 						praxiPlayer.loadLayout();
-						player.setKnockbackProfile(null);
+
+						PlayerUtil.spawn(player);
 					}
 				}
 			} else if (this.isTeamMatch()) {
@@ -484,6 +430,7 @@ public abstract class Match {
 			String deadName = Style.RED + deadPlayer.getName();
 
 			if (this.isSoloMatch()) {
+				// Todo: fix NPE here, idk where but it says the line right below...
 				if (deadPlayer.getUniqueId().equals(involved.getUniqueId())) {
 					deadName = Style.GREEN + deadPlayer.getName();
 				}
@@ -546,25 +493,13 @@ public abstract class Match {
 		return System.currentTimeMillis() - this.startTimestamp;
 	}
 
-	protected void broadcast(String message) {
-		if (this.isSoloMatch()) {
-			this.getPlayerA().sendMessage(message);
-			this.getPlayerB().sendMessage(message);
-		} else {
-			this.getPlayers().forEach(player -> player.sendMessage(message));
-		}
-
+	public void broadcastMessage(String message) {
+		this.getPlayers().forEach(player -> player.sendMessage(message));
 		this.getSpectators().forEach(player -> player.sendMessage(message));
 	}
 
-	void broadcast(Sound sound) {
-		if (this.isSoloMatch()) {
-			this.getPlayerA().playSound(this.getPlayerA().getLocation(), sound, 1.0F, 1.0F);
-			this.getPlayerB().playSound(this.getPlayerB().getLocation(), sound, 1.0F, 1.0F);
-		} else {
-			this.getPlayers().forEach(player -> player.playSound(player.getLocation(), sound, 1.0F, 1.0F));
-		}
-
+	public void broadcastSound(Sound sound) {
+		this.getPlayers().forEach(player -> player.playSound(player.getLocation(), sound, 1.0F, 1.0F));
 		this.getSpectators().forEach(player -> player.playSound(player.getLocation(), sound, 1.0F, 1.0F));
 	}
 
@@ -706,5 +641,67 @@ public abstract class Match {
 
 		PlayerUtil.spawn(player);
 	}
+
+	public abstract boolean isDuel();
+
+	public abstract boolean isSoloMatch();
+
+	public abstract boolean isTeamMatch();
+
+	public abstract void onStart();
+
+	public abstract void onEnd();
+
+	public abstract void onDeath(Player player, Player killer);
+
+	public abstract void onRespawn(Player player);
+
+	public abstract boolean canEnd();
+
+	public abstract Player getWinningPlayer();
+
+	public abstract MatchTeam getWinningTeam();
+
+	public abstract MatchPlayer getMatchPlayerA();
+
+	public abstract MatchPlayer getMatchPlayerB();
+
+	public abstract List<MatchPlayer> getMatchPlayers();
+
+	public abstract Player getPlayerA();
+
+	public abstract Player getPlayerB();
+
+	public abstract List<Player> getPlayers();
+
+	public abstract MatchTeam getTeamA();
+
+	public abstract MatchTeam getTeamB();
+
+	public abstract MatchTeam getTeam(MatchPlayer matchPlayer);
+
+	public abstract MatchTeam getTeam(Player player);
+
+	public abstract MatchPlayer getMatchPlayer(Player player);
+
+	public abstract int getOpponentsLeft(Player player);
+
+	public abstract MatchTeam getOpponentTeam(MatchTeam matchTeam);
+
+	public abstract MatchTeam getOpponentTeam(Player player);
+
+	public abstract MatchPlayer getOpponentMatchPlayer(Player player);
+
+	public abstract Player getOpponentPlayer(Player player);
+
+	public abstract int getTotalRoundWins();
+
+	public abstract int getRoundWins(MatchPlayer matchPlayer);
+
+	public abstract int getRoundWins(MatchTeam matchTeam);
+
+	public abstract int getRoundsNeeded(MatchPlayer matchPlayer);
+
+	public abstract int getRoundsNeeded(MatchTeam matchTeam);
 
 }

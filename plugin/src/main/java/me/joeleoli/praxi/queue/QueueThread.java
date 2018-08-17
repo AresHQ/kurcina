@@ -94,15 +94,6 @@ public class QueueThread extends Thread {
 									queue.getLadder(), arena, queue.isRanked(), false
 							);
 
-							// Update player's states
-							firstPraxiPlayer.setState(PlayerState.IN_MATCH);
-							firstPraxiPlayer.setQueuePlayer(null);
-							firstPraxiPlayer.setMatch(match);
-
-							secondPraxiPlayer.setState(PlayerState.IN_MATCH);
-							secondPraxiPlayer.setQueuePlayer(null);
-							secondPraxiPlayer.setMatch(match);
-
 							TaskUtil.run(match::handleStart);
 						}
 					}

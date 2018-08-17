@@ -66,7 +66,7 @@ public class PartyCommands {
 			return;
 		}
 
-		if (!praxiPlayer.getParty().isLeader(player)) {
+		if (!praxiPlayer.getParty().isLeader(player.getUniqueId())) {
 			player.sendMessage(Style.RED + "You are not the leader of your party.");
 			return;
 		}
@@ -183,7 +183,7 @@ public class PartyCommands {
 			return;
 		}
 
-		if (!praxiPlayer.getParty().isLeader(player)) {
+		if (!praxiPlayer.getParty().isLeader(player.getUniqueId())) {
 			player.sendMessage(Style.RED + "You are not the leader of your party.");
 			return;
 		}
@@ -210,7 +210,7 @@ public class PartyCommands {
 			return;
 		}
 
-		if (!praxiPlayer.getParty().isLeader(player)) {
+		if (!praxiPlayer.getParty().isLeader(player.getUniqueId())) {
 			player.sendMessage(Style.RED + "You are not the leader of your party.");
 			return;
 		}
@@ -227,7 +227,7 @@ public class PartyCommands {
 			return;
 		}
 
-		if (!praxiPlayer.getParty().isLeader(player)) {
+		if (!praxiPlayer.getParty().isLeader(player.getUniqueId())) {
 			player.sendMessage(Style.RED + "You are not the leader of your party.");
 			return;
 		}

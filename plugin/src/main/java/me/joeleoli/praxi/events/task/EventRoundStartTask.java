@@ -16,7 +16,10 @@ public class EventRoundStartTask extends EventTask {
 
 	@Override
 	public void onRun() {
-		if (this.getTicks() >= 4) {
+		if (this.getTicks() >= 3) {
+			this.getEvent().setEventTask(null);
+			this.getEvent().setState(EventState.ROUND_FIGHTING);
+
 			final Player playerA = this.getEvent().getRoundPlayerA().toPlayer();
 			final Player playerB = this.getEvent().getRoundPlayerB().toPlayer();
 
@@ -27,9 +30,9 @@ public class EventRoundStartTask extends EventTask {
 		} else {
 			final int seconds = this.getSeconds();
 
-			this.getEvent().broadcast(
-					Style.YELLOW + "The round will start in " + Style.PINK + (seconds - 2) + " second" +
-					(seconds - 2 == 1 ? "" : "s") + Style.YELLOW + "...");
+			this.getEvent().broadcastMessage(
+					Style.YELLOW + "The round will start in " + Style.PINK + (seconds) + " second" +
+					(seconds == 1 ? "" : "s") + Style.YELLOW + "...");
 		}
 	}
 

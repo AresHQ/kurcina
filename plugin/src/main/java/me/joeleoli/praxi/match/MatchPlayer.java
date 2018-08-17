@@ -20,6 +20,8 @@ public class MatchPlayer extends TeamPlayer {
 	public double getPotionAccuracy() {
 		if (this.potionsMissed == 0) {
 			return 100.0;
+		} else if (this.potionsThrown == this.potionsMissed) {
+			return 50.0;
 		}
 
 		return Math.round(100.0D - (((double) this.potionsMissed / (double) this.potionsThrown) * 100.0D));

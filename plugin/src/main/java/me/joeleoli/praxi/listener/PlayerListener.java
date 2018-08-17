@@ -19,7 +19,6 @@ import me.joeleoli.praxi.match.Match;
 import me.joeleoli.praxi.party.gui.OtherPartiesMenu;
 import me.joeleoli.praxi.party.gui.PartyEventSelectEventMenu;
 import me.joeleoli.praxi.player.PlayerHotbar;
-import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.praxi.queue.Queue;
 import me.joeleoli.praxi.queue.gui.QueueJoinMenu;
@@ -36,7 +35,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
@@ -58,22 +56,6 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public class PlayerListener implements Listener {
-
-	@EventHandler
-	public void onRegenerate(EntityRegainHealthEvent event) {
-		if (event.getEntity() instanceof Player) {
-			if (event.getRegainReason() == EntityRegainHealthEvent.RegainReason.SATIATED) {
-				final Player player = (Player) event.getEntity();
-				final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
-
-				if (praxiPlayer.isInMatch()) {
-					if (!praxiPlayer.getMatch().getLadder().isRegeneration()) {
-						event.setCancelled(true);
-					}
-				}
-			}
-		}
-	}
 
 	@EventHandler
 	public void onPlayerItemConsume(PlayerItemConsumeEvent event) {
@@ -195,7 +177,7 @@ public class PlayerListener implements Listener {
 		final PraxiPlayer praxiPlayer = PraxiPlayer.getPlayers().remove(event.getPlayer().getUniqueId());
 
 		if (praxiPlayer.getParty() != null) {
-			if (praxiPlayer.getParty().isLeader(event.getPlayer())) {
+			if (praxiPlayer.getParty().isLeader(event.getPlayer().getUniqueId())) {
 				praxiPlayer.getParty().disband();
 			} else {
 				praxiPlayer.getParty().leave(event.getPlayer(), false);
@@ -216,6 +198,10 @@ public class PlayerListener implements Listener {
 			}
 
 			queue.removePlayer(praxiPlayer.getQueuePlayer());
+		}
+
+		if (praxiPlayer.isInEvent()) {
+			praxiPlayer.getEvent().handleLeave(event.getPlayer());
 		}
 	}
 
@@ -365,6 +351,11 @@ public class PlayerListener implements Listener {
 					break;
 					case SETTINGS: {
 						CommandHandler.executeCommand(event.getPlayer(), "settings");
+					}
+					break;
+					case REMATCH_REQUEST:
+					case REMATCH_ACCEPT: {
+						CommandHandler.executeCommand(event.getPlayer(), "rematch");
 					}
 					break;
 				}

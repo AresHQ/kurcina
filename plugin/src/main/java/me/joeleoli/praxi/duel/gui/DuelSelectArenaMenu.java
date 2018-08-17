@@ -78,7 +78,7 @@ public class DuelSelectArenaMenu extends Menu {
 		public void clicked(Player player, int i, ClickType clickType, int hb) {
 			PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
-			// Update and send the procedure
+			// Update and request the procedure
 			praxiPlayer.getDuelProcedure().setArena(this.arena);
 			praxiPlayer.getDuelProcedure().send();
 

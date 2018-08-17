@@ -3,7 +3,6 @@ package me.joeleoli.praxi.handler;
 import me.joeleoli.praxi.events.Event;
 import me.joeleoli.praxi.events.EventState;
 import me.joeleoli.praxi.match.Match;
-import me.joeleoli.praxi.match.MatchState;
 import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.ragespigot.handler.MovementHandler;
 import net.minecraft.server.v1_8_R3.PacketPlayInFlying;
@@ -34,36 +33,6 @@ public class PlayerMovementHandler implements MovementHandler {
 
 						match.handleDeath(player, killer, false);
 					}
-				} else if (praxiPlayer.getMatch().getState() == MatchState.STARTING) {
-					Location teleportTo = null;
-
-					if (match.isSoloMatch()) {
-						if (match.getPlayerA().equals(player)) {
-							teleportTo = match.getArena().getSpawn1();
-						} else {
-							teleportTo = match.getArena().getSpawn2();
-						}
-					} else if (match.isTeamMatch()) {
-						if (match.getTeamA().equals(match.getTeam(player))) {
-							teleportTo = match.getArena().getSpawn1();
-						} else {
-							teleportTo = match.getArena().getSpawn2();
-						}
-					}
-
-					if (teleportTo == null) {
-						return;
-					}
-
-					teleportTo.setY(to.getY());
-					teleportTo.setYaw(to.getYaw());
-					teleportTo.setPitch(to.getPitch());
-
-					if (teleportTo.getBlock().getType() != Material.AIR) {
-						teleportTo.add(0, 2, 0);
-					}
-
-					player.teleport(teleportTo);
 				}
 			}
 		} else if (praxiPlayer.isInEvent()) {
@@ -71,8 +40,7 @@ public class PlayerMovementHandler implements MovementHandler {
 
 			if (event.isSumo()) {
 				if (event.getState() == EventState.ROUND_FIGHTING) {
-					if (praxiPlayer.getUuid().equals(event.getRoundPlayerA().getUuid()) ||
-					    praxiPlayer.getUuid().equals(event.getRoundPlayerB().getUuid())) {
+					if (event.isFighting(player.getUniqueId())) {
 						if (player.getLocation().getBlock().getType() == Material.WATER ||
 						    player.getLocation().getBlock().getType() == Material.STATIONARY_WATER) {
 							event.handleDeath(player);

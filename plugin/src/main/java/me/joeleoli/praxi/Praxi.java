@@ -35,6 +35,7 @@ import me.joeleoli.praxi.queue.QueueThread;
 import me.joeleoli.praxi.task.ExpBarCooldownTask;
 import me.joeleoli.praxi.task.InventoryCleanupTask;
 import me.joeleoli.praxi.task.InviteCleanupTask;
+import me.joeleoli.praxi.task.RematchExpireRunnable;
 import me.joeleoli.praxi.task.SaveDataTask;
 import me.joeleoli.ragespigot.RageSpigot;
 import org.bukkit.Difficulty;
@@ -101,6 +102,7 @@ public class Praxi extends PraxiProvider {
 		this.getServer().getScheduler().runTaskTimerAsynchronously(this, new InviteCleanupTask(), 20L * 5, 20L * 5);
 		this.getServer().getScheduler()
 		    .runTaskTimerAsynchronously(this, new SaveDataTask(), 20L * 60 * 5, 20L * 60 * 5);
+		this.getServer().getScheduler().runTaskTimerAsynchronously(this, new RematchExpireRunnable(), 20L * 3, 20L * 3);
 
 		this.getServer().getWorlds().forEach(world -> {
 			world.setDifficulty(Difficulty.HARD);

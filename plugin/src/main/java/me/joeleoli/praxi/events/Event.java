@@ -25,6 +25,13 @@ import org.bukkit.entity.Player;
 @Getter
 public abstract class Event {
 
+	protected static final String EVENT_PREFIX = Style.GOLD + Style.BOLD + "[Event] " + Style.RESET;
+	private static final HoverEvent HOVER_EVENT = new HoverEvent(
+			HoverEvent.Action.SHOW_TEXT,
+			new ChatComponentBuilder("").parse(Style.YELLOW + "Click to join the Sumo event.").create()
+	);
+	private static final ClickEvent CLICK_EVENT = new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/event join");
+
 	private String name;
 	@Setter
 	private EventState state = EventState.WAITING;
@@ -53,6 +60,14 @@ public abstract class Event {
 		}
 	}
 
+	public boolean isWaiting() {
+		return this.state == EventState.WAITING;
+	}
+
+	public boolean isFighting() {
+		return this.state == EventState.ROUND_FIGHTING;
+	}
+
 	public EventPlayer getEventPlayer(UUID uuid) {
 		return this.eventPlayers.get(uuid);
 	}
@@ -71,7 +86,7 @@ public abstract class Event {
 		return players;
 	}
 
-	public int getPlayerCount() {
+	public int getRemainingPlayers() {
 		return this.eventPlayers.size();
 	}
 
@@ -81,6 +96,10 @@ public abstract class Event {
 
 	public void handleJoin(Player player) {
 		this.eventPlayers.put(player.getUniqueId(), new EventPlayer(player));
+		this.broadcastMessage(
+				EVENT_PREFIX + Style.PINK + player.getName() + Style.YELLOW + " joined the event " + Style.PINK + "(" +
+				this.getRemainingPlayers() + "/" + this.getMaxPlayers() + ")");
+		this.onJoin(player);
 
 		final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
@@ -88,57 +107,88 @@ public abstract class Event {
 		praxiPlayer.setState(PlayerState.IN_EVENT);
 		praxiPlayer.loadLayout();
 
-		this.broadcast(Style.GOLD + Style.BOLD + "[Event] " + Style.PINK + player.getName() + Style.YELLOW +
-		               " joined the event " + Style.PINK + "(" + this.getPlayerCount() + "/" + this.getMaxPlayers() +
-		               ")");
-
 		player.teleport(Praxi.getInstance().getEventManager().getSumoSpectator());
-
-		this.onJoin(player);
 	}
 
 	public void handleDeath(Player player) {
-		this.getEventPlayer(player.getUniqueId()).setState(EventPlayerState.ELIMINATED);
+		final EventPlayer loser = this.getEventPlayer(player.getUniqueId());
+
+		loser.setState(EventPlayerState.ELIMINATED);
+
+		this.onDeath(player);
 	}
 
 	public void handleLeave(Player player) {
-		if (player.getUniqueId().equals(this.getRoundPlayerA().getUuid()) ||
-		    player.getUniqueId().equals(this.getRoundPlayerB().getUuid())) {
+		if (this.isFighting(player.getUniqueId())) {
 			this.handleDeath(player);
 		}
 
 		this.eventPlayers.remove(player.getUniqueId());
+		this.onLeave(player);
 
-		PlayerUtil.spawn(player);
+		this.getPlayers().forEach(otherPlayer -> {
+			player.hidePlayer(otherPlayer);
+			otherPlayer.hidePlayer(player);
+		});
+
+		if (this.state == EventState.WAITING) {
+			this.broadcastMessage(
+					EVENT_PREFIX + Style.PINK + player.getName() + Style.YELLOW + " left the event " + Style.PINK +
+					"(" + this.getRemainingPlayers() + "/" + this.getMaxPlayers() + ")");
+		}
 
 		final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 
 		praxiPlayer.setState(PlayerState.IN_LOBBY);
+		praxiPlayer.setEvent(null);
 		praxiPlayer.loadLayout();
 
-		if (this.state == EventState.WAITING) {
-			this.broadcast(Style.GOLD + Style.BOLD + "[Event] " + Style.PINK + player.getName() + Style.YELLOW +
-			               " left the event " + Style.PINK + "(" + this.getPlayerCount() + "/" + this.getMaxPlayers() +
-			               ")");
-		}
-
-		this.onLeave(player);
+		PlayerUtil.spawn(player);
 	}
 
 	public void end() {
+		// Remove active event and set cooldown
+		Praxi.getInstance().getEventManager().setActiveEvent(null);
+		Praxi.getInstance().getEventManager().setEventCooldown(new Cooldown(60_000L * 5L));
 
-	}
+		// Cancel any active task
+		this.setEventTask(null);
 
-	public boolean canEnd() {
-		int eliminated = 0;
+		final Player winner = this.getWinner();
+		final List<Player> players = this.getPlayers();
+
+		PlayerUtil.messageAll(EVENT_PREFIX + Style.PINK + winner.getName() + Style.YELLOW + " has won the event!");
 
 		for (EventPlayer eventPlayer : this.eventPlayers.values()) {
-			if (eventPlayer.getState() == EventPlayerState.ELIMINATED) {
-				eliminated++;
+			final Player player = eventPlayer.toPlayer();
+
+			if (player != null) {
+				final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+
+				praxiPlayer.setState(PlayerState.IN_LOBBY);
+				praxiPlayer.setEvent(null);
+				praxiPlayer.loadLayout();
+
+				PlayerUtil.spawn(player);
 			}
 		}
 
-		return eliminated + 1 == this.getPlayerCount();
+		players.forEach(player -> players.forEach(otherPlayer -> {
+			player.hidePlayer(otherPlayer);
+			otherPlayer.hidePlayer(player);
+		}));
+	}
+
+	public boolean canEnd() {
+		int remaining = 0;
+
+		for (EventPlayer eventPlayer : this.eventPlayers.values()) {
+			if (eventPlayer.getState() == EventPlayerState.WAITING) {
+				remaining++;
+			}
+		}
+
+		return remaining == 1;
 	}
 
 	public Player getWinner() {
@@ -153,14 +203,10 @@ public abstract class Event {
 
 	public void announce() {
 		BaseComponent[] components = new ChatComponentBuilder("")
-				.parse(Style.GOLD + Style.BOLD + "[Event] " + Style.RESET + Style.PINK + this.getHost().getName() +
-				       Style.YELLOW + " is hosting a " + Style.PINK + "Sumo Event " + Style.GREEN +
-				       "[Click to join]")
-				.attachToEachPart(new HoverEvent(
-						HoverEvent.Action.SHOW_TEXT,
-						new ChatComponentBuilder("").parse(Style.YELLOW + "Click to join the Sumo event.").create()
-				))
-				.attachToEachPart(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/event join"))
+				.parse(EVENT_PREFIX + Style.PINK + this.getHost().getName() + Style.YELLOW + " is hosting a " +
+				       Style.PINK + this.getName() + " Event " + Style.GREEN + "[Click to join]")
+				.attachToEachPart(HOVER_EVENT)
+				.attachToEachPart(CLICK_EVENT)
 				.create();
 
 		for (Player player : Bukkit.getOnlinePlayers()) {
@@ -168,7 +214,7 @@ public abstract class Event {
 		}
 	}
 
-	public void broadcast(String message) {
+	public void broadcastMessage(String message) {
 		for (Player player : this.getPlayers()) {
 			player.sendMessage(message);
 		}
@@ -184,10 +230,14 @@ public abstract class Event {
 
 	public abstract void onRound();
 
+	public abstract void onDeath(Player player);
+
 	public abstract String getRoundDuration();
 
 	public abstract EventPlayer getRoundPlayerA();
 
 	public abstract EventPlayer getRoundPlayerB();
+
+	public abstract boolean isFighting(UUID uuid);
 
 }

@@ -57,10 +57,10 @@ public class PlayerSettingsMenu extends Menu {
 		DUEL_REQUESTS(
 				PracticeSetting.RECEIVE_DUEL_REQUESTS,
 				Style.RED + Style.BOLD + "Duel Requests",
-				"If enabled, players can send you duel requests.",
+				"If enabled, players can request you duel requests.",
 				Material.BLAZE_ROD,
-				"Let players send you duel requests",
-				"Don't let players send you duel requests"
+				"Let players request you duel requests",
+				"Don't let players request you duel requests"
 		),
 		GLOBAL_MESSAGES(
 				Setting.GlobalSetting.RECEIVE_GLOBAL_MESSAGES,

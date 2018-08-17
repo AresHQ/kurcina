@@ -43,7 +43,7 @@ public class EventCommands {
 		}
 
 		if (!Praxi.getInstance().getEventManager().getEventCooldown().hasExpired()) {
-			player.sendMessage(Style.RED + "There is currently a event host cooldown active.");
+			player.sendMessage(Style.RED + "There is an event cooldown active.");
 			return;
 		}
 
@@ -55,8 +55,8 @@ public class EventCommands {
 		final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 		final Event activeEvent = Praxi.getInstance().getEventManager().getActiveEvent();
 
-		if (!praxiPlayer.isInLobby()) {
-			player.sendMessage(Style.RED + "You must be in the lobby to join an event.");
+		if (praxiPlayer.isBusy()) {
+			player.sendMessage(Style.RED + "You cannot join the event right now.");
 			return;
 		}
 
@@ -69,7 +69,6 @@ public class EventCommands {
 			player.sendMessage(Style.RED + "That event is currently on-going and cannot be joined.");
 			return;
 		}
-
 
 		Praxi.getInstance().getEventManager().getActiveEvent().handleJoin(player);
 	}

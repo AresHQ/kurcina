@@ -20,8 +20,8 @@ public class SpectateCommands {
 		PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 		PraxiPlayer targetData = PraxiPlayer.getByUuid(target.getUniqueId());
 
-		if (praxiPlayer == null || !praxiPlayer.isInLobby()) {
-			player.sendMessage(Style.RED + "You must be in the lobby to spectate another player's match.");
+		if (praxiPlayer.isBusy()) {
+			player.sendMessage(Style.RED + "You cannot spectate right now.");
 			return;
 		}
 

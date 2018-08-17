@@ -156,7 +156,7 @@ public class MatchDetailsMenu extends Menu {
 					final String name = BukkitUtil.getName(effect.getType()) + " " + (effect.getAmplifier() + 1);
 					final String duration = " (" + TimeUtil.millisToTimer((effect.getDuration() / 20) * 1000) + ")";
 
-					lore.add(Style.PINK + name + duration);
+					lore.add(Style.PINK + name + Style.GRAY + duration);
 				});
 
 				builder.lore(lore);

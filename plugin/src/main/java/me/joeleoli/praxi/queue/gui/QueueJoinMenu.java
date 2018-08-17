@@ -11,7 +11,6 @@ import me.joeleoli.nucleus.menu.Menu;
 import me.joeleoli.nucleus.util.ItemBuilder;
 import me.joeleoli.nucleus.util.Style;
 import me.joeleoli.praxi.Praxi;
-import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.player.PraxiPlayer;
 import me.joeleoli.praxi.queue.Queue;
 import org.bukkit.entity.Player;
@@ -50,44 +49,12 @@ public class QueueJoinMenu extends Menu {
 
 		@Override
 		public ItemStack getButtonItem(Player player) {
-			final Queue oppositeQueue = Queue.getByPredicate(
-					q -> q.isRanked() != this.queue.isRanked() && q.getLadder() == this.queue.getLadder());
 			final List<String> lore = new ArrayList<>();
 
+			lore.add(
+					" " + Style.YELLOW + "Fighting: " + Style.RESET + Praxi.getInstance().getFightingCount(this.queue));
+			lore.add(" " + Style.YELLOW + "Queueing: " + Style.RESET + this.queue.getPlayers().size());
 			lore.add("");
-
-			int rankedFighting = 0;
-			int rankedQueueing = 0;
-			int unrankedFighting = 0;
-			int unrankedQueueing = 0;
-
-			if (this.queue.isRanked()) {
-				rankedFighting = Praxi.getInstance().getFightingCount(this.queue);
-				rankedQueueing = this.queue.getPlayers().size();
-
-				if (oppositeQueue != null) {
-					unrankedFighting = Praxi.getInstance().getFightingCount(oppositeQueue);
-					unrankedQueueing = oppositeQueue.getPlayers().size();
-				}
-			} else {
-				unrankedFighting = Praxi.getInstance().getFightingCount(this.queue);
-				unrankedQueueing = this.queue.getPlayers().size();
-
-				if (oppositeQueue != null) {
-					rankedFighting = Praxi.getInstance().getFightingCount(oppositeQueue);
-					rankedQueueing = oppositeQueue.getPlayers().size();
-				}
-			}
-
-			lore.add(Style.PINK + Style.UNDER_LINE + "Ranked");
-			lore.add(" " + Style.YELLOW + "In fights: " + Style.RESET + rankedFighting);
-			lore.add(" " + Style.YELLOW + "In queue: " + Style.RESET + rankedQueueing);
-			lore.add("");
-			lore.add(Style.PINK + Style.UNDER_LINE + "Unranked");
-			lore.add(" " + Style.YELLOW + "In fights: " + Style.RESET + unrankedFighting);
-			lore.add(" " + Style.YELLOW + "In queue: " + Style.RESET + unrankedQueueing);
-			lore.add("");
-
 			lore.add(Style.YELLOW + "Click here to select " + Style.PINK + Style.BOLD +
 			         this.queue.getLadder().getName() + Style.YELLOW + ".");
 
@@ -104,19 +71,20 @@ public class QueueJoinMenu extends Menu {
 				return;
 			}
 
-			if (!praxiPlayer.isInLobby()) {
-				player.sendMessage(Style.RED + "You must be in the lobby to join a queue.");
-				return;
-			}
-
 			if (NucleusAPI.isFrozen(player)) {
 				player.sendMessage(Style.RED + "You cannot queue while frozen.");
 				return;
 			}
 
+			if (praxiPlayer.isBusy()) {
+				player.sendMessage(Style.RED + "You cannot queue right now.");
+				return;
+			}
+
 			player.closeInventory();
 
-			this.queue.addPlayer(player,
+			this.queue.addPlayer(
+					player,
 					!this.queue.isRanked() ? 0 : praxiPlayer.getStatistics().getElo(this.queue.getLadder())
 			);
 		}

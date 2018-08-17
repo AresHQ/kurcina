@@ -18,8 +18,9 @@ public class EventStartTask extends EventTask {
 				this.getEvent().setCooldown(new Cooldown(11_000));
 			} else {
 				if (this.getEvent().getCooldown().hasExpired()) {
+					this.getEvent().setState(EventState.ROUND_STARTING);
 					this.getEvent().onRound();
-					this.getEvent().setEventTask(null);
+					this.getEvent().setEventTask(new EventRoundStartTask(this.getEvent()));
 				}
 			}
 		}

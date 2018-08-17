@@ -48,7 +48,7 @@ public class ProjectileListener implements Listener {
 			final PraxiPlayer shooterData = PraxiPlayer.getByUuid(shooter.getUniqueId());
 
 			if (shooterData.isInMatch()) {
-				if (event.getIntensity(shooter) < 0.6D) {
+				if (event.getIntensity(shooter) <= 0.5D) {
 					shooterData.getMatch().getMatchPlayer(shooter).incrementPotionsMissed();
 				}
 			}

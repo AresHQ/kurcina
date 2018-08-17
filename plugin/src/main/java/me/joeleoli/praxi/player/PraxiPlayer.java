@@ -15,6 +15,7 @@ import me.joeleoli.nucleus.cooldown.Cooldown;
 import me.joeleoli.nucleus.player.PlayerInfo;
 import me.joeleoli.nucleus.util.InventoryUtil;
 import me.joeleoli.nucleus.util.PlayerUtil;
+import me.joeleoli.nucleus.util.TaskUtil;
 import me.joeleoli.praxi.Praxi;
 import me.joeleoli.praxi.duel.DuelProcedure;
 import me.joeleoli.praxi.duel.DuelRequest;
@@ -56,6 +57,8 @@ public class PraxiPlayer extends PlayerInfo {
 	private Map<UUID, DuelRequest> sentDuelRequests = new HashMap<>();
 	@Setter
 	private DuelProcedure duelProcedure;
+	@Setter
+	private RematchData rematchData;
 	private boolean loaded;
 
 	public PraxiPlayer(UUID uuid, String name) {
@@ -133,6 +136,53 @@ public class PraxiPlayer extends PlayerInfo {
 		return this.enderpearlCooldown != null && this.enderpearlCooldown.getPassed() < 16_000;
 	}
 
+	public boolean isBusy() {
+		return this.isInMatch() || this.isInEvent() || this.isSpectating() || this.getParty() != null;
+	}
+
+	public void refreshRematch() {
+		final Player player = this.toPlayer();
+
+		if (player == null) {
+			return;
+		}
+
+		if (this.rematchData != null) {
+			boolean update = false;
+
+			final Player target = Praxi.getInstance().getServer().getPlayer(this.rematchData.getTarget());
+
+			if (target == null || !target.isOnline()) {
+				this.rematchData = null;
+				update = true;
+			} else {
+				final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(target.getUniqueId());
+
+				if (!(praxiPlayer.isInLobby() || praxiPlayer.isInQueue())) {
+					this.rematchData = null;
+					update = true;
+				} else if (praxiPlayer.getRematchData() == null) {
+					if (!this.rematchData.getKey().equals(praxiPlayer.getRematchData().getKey())) {
+						this.rematchData = null;
+						update = true;
+					}
+				} else if (this.rematchData.isReceive()) {
+					final int requestSlot = player.getInventory().first(PlayerHotbar.getItems().get(PlayerHotbar.HotbarItem.REMATCH_REQUEST));
+
+					if (requestSlot != -1) {
+						update = true;
+					}
+				}
+			}
+
+			if (update) {
+				if (this.isInLobby()) {
+					TaskUtil.run(this::loadLayout);
+				}
+			}
+		}
+	}
+
 	public void loadLayout() {
 		Player player = this.toPlayer();
 
@@ -143,31 +193,13 @@ public class PraxiPlayer extends PlayerInfo {
 		PlayerUtil.reset(player);
 
 		if (this.isInLobby()) {
-			if (this.party == null) {
-				player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.LOBBY_NO_PARTY));
-			} else {
-				if (this.party.getLeader().getUuid().equals(player.getUniqueId())) {
-					player.getInventory()
-					      .setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.LOBBY_PARTY_LEADER));
-				} else {
-					player.getInventory()
-					      .setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.LOBBY_PARTY_MEMBER));
-				}
-			}
+			player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.LOBBY, this));
 		} else if (this.isInQueue()) {
-			if (this.party == null) {
-				player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.QUEUE_NO_PARTY));
-			} else {
-				if (this.party.getLeader().getUuid().equals(player.getUniqueId())) {
-					player.getInventory()
-					      .setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.QUEUE_PARTY_LEADER));
-				} else {
-					player.getInventory()
-					      .setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.QUEUE_PARTY_MEMBER));
-				}
-			}
-		} else if (this.state == PlayerState.SPECTATE_MATCH && this.match != null) {
-			player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.SPECTATE));
+			player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.QUEUE, this));
+		} else if (this.isSpectating()) {
+			player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.MATCH_SPECTATE, this));
+		} else if (this.isInEvent()) {
+			player.getInventory().setContents(PlayerHotbar.getLayout(PlayerHotbar.HotbarLayout.EVENT_SPECTATE, this));
 		}
 
 		player.updateInventory();

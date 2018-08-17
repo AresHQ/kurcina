@@ -11,9 +11,9 @@ import me.joeleoli.praxi.duel.gui.DuelSelectLadderMenu;
 import me.joeleoli.praxi.match.Match;
 import me.joeleoli.praxi.match.MatchPlayer;
 import me.joeleoli.praxi.match.impl.SoloMatch;
-import me.joeleoli.praxi.player.PlayerState;
 import me.joeleoli.praxi.player.PracticeSetting;
 import me.joeleoli.praxi.player.PraxiPlayer;
+import me.joeleoli.praxi.player.RematchData;
 import org.bukkit.entity.Player;
 
 public class DuelCommands {
@@ -38,17 +38,12 @@ public class DuelCommands {
 		final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
 		final PraxiPlayer targetData = PraxiPlayer.getByUuid(target.getUniqueId());
 
-		if (praxiPlayer.getParty() != null) {
-			player.sendMessage(Style.RED + "You cannot duel whilst in a party.");
+		if (praxiPlayer.isBusy()) {
+			player.sendMessage(Style.RED + "You cannot duel right now.");
 			return;
 		}
 
-		if (praxiPlayer.isInMatch() || praxiPlayer.isInQueue()) {
-			player.sendMessage(Style.RED + "You must be in the lobby to send a duel request.");
-			return;
-		}
-
-		if (targetData.isInMatch() || targetData.isInQueue() || targetData.getParty() != null) {
+		if (targetData.isBusy()) {
 			player.sendMessage(NucleusAPI.getColoredName(target) + Style.RED + " is currently busy.");
 			return;
 		}
@@ -89,19 +84,17 @@ public class DuelCommands {
 		final PraxiPlayer targetData = PraxiPlayer.getByUuid(target.getUniqueId());
 
 		if (!targetData.isPendingDuelRequest(player)) {
-			player.sendMessage(
-					Style.RED + "You do not have a pending duel request from " + NucleusAPI.getColoredName(target) +
-					Style.RED + ".");
+			player.sendMessage(Style.RED + "You do not have a pending duel request from " + NucleusAPI.getColoredName(target) + Style.RED + ".");
 			return;
 		}
 
-		if (praxiPlayer.isInMatch() || praxiPlayer.isInQueue()) {
-			player.sendMessage(Style.RED + "You must be in the lobby to accept a duel.");
+		if (praxiPlayer.isBusy()) {
+			player.sendMessage(Style.RED + "You cannot duel right now.");
 			return;
 		}
 
-		if (targetData.isInMatch() || targetData.isInQueue()) {
-			player.sendMessage(Style.RED + "That player is no longer available.");
+		if (targetData.isBusy()) {
+			player.sendMessage(NucleusAPI.getColoredName(target) + Style.RED + " is currently busy.");
 			return;
 		}
 
@@ -110,27 +103,56 @@ public class DuelCommands {
 		Arena arena = request.getArena();
 
 		if (arena.isActive()) {
+			arena = Arena.getRandom(request.getLadder());
+		}
+
+		if (arena == null) {
 			player.sendMessage(Style.RED + "Tried to start a match but there are no available arenas.");
 			return;
 		}
 
-		// Update arena
 		arena.setActive(true);
 
-		// Create match
 		Match match = new SoloMatch(new MatchPlayer(player), new MatchPlayer(target), request.getLadder(), arena, false,
 				true
 		);
 
-		// Update player's states
-		praxiPlayer.setState(PlayerState.IN_MATCH);
-		praxiPlayer.setMatch(match);
-
-		targetData.setState(PlayerState.IN_MATCH);
-		targetData.setMatch(match);
-
-		// Start match
 		match.handleStart();
+	}
+
+	@Command(names = "rematch")
+	public static void rematch(Player player) {
+		if (NucleusAPI.isFrozen(player)) {
+			player.sendMessage(Style.RED + "You cannot duel while frozen.");
+			return;
+		}
+
+		final PraxiPlayer praxiPlayer = PraxiPlayer.getByUuid(player.getUniqueId());
+
+		if (praxiPlayer.getRematchData() == null) {
+			player.sendMessage(Style.RED + "You do not have anyone to re-match.");
+			return;
+		}
+
+		praxiPlayer.refreshRematch();
+
+		if (praxiPlayer.getRematchData() == null) {
+			player.sendMessage(Style.RED + "That player is no longer available.");
+			return;
+		}
+
+		final RematchData rematchData = praxiPlayer.getRematchData();
+
+		if (rematchData.isReceive()) {
+			rematchData.accept();
+		} else {
+			if (rematchData.isSent()) {
+				player.sendMessage(Style.RED + "You have already sent a rematch request to that player.");
+				return;
+			}
+
+			rematchData.request();
+		}
 	}
 
 }
