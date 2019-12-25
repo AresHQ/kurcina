@@ -72,6 +72,9 @@ public class Praxi extends PraxiProvider {
 		this.eventManager.load();
 
 		this.loadLadders();
+
+		Edo je pedercina
+
 		this.loadArenas();
 		this.loadQueues();
 
